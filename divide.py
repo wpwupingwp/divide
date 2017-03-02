@@ -94,7 +94,7 @@ def divide_gene(head_file, divided_files):
     primer = list()
     with open(arg.primer_file, 'r') as input_file:
         for line in input_file:
-            if line.startswith('gene'):
+            if line.startswith('primer'):
                 continue
             line = line.split(sep=',')
             primer.append([i.strip() for i in line])
