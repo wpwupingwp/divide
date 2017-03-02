@@ -99,18 +99,14 @@ def divide_gene(head_file, divided_files):
             line = line.split(sep=',')
             primer.append([i.strip() for i in line])
     # join primer pairs
-    join_seq = 'N'*15
     gene_list = list()
     primer_file = os.path.join(arg.output, 'primer.fasta')
-    handle = open(primer_file, 'w')
-    for index in range(0, len(primer) - 1, 2):
-        left = primer[index][2][arg.primer_adapter:]
-        right = primer[index + 1][2][arg.primer_adapter:]
-        short_primer = ''.join([left, join_seq, right])
-        name = primer[index][0]
-        gene_list.append(name)
-        handle.write('>{0}\n{1}\n'.format(name, short_primer))
-    handle.close()
+    with open(primer_file, 'w') as output:
+        for line in primer:
+            primer_name, gene_name, sequence = line
+            gene_list.append(gene_name)
+            output.write('>{0}_{1}\n{2}\n'.format(primer_name, gene_name,
+                                                  sequence))
     # blast and parse
     db_name = primer_file.replace('.fasta', '')
     run('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
