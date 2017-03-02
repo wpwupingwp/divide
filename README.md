@@ -22,26 +22,13 @@ Barcode file looks like this:
 
 Primer file looks like this:
 
->    gene,primer,sequence,direction
+>    primer,gene,sequence
 
->    rbcL,rbcLF,ATCGATCGATCGA,f
+>    rbcL_F,rbcL,ATCGATCGATCGA
 
->    rbcL,rbcLR,TACGTACGTACG,r
+>    rbcL_R,rbcL,TACGTACGTACG
 
 There is no limits for gene and primer name, except that you cannot use comma in them in order to avoid complicated seperator problem.
-
-**Notice that paired primers were put together. If you have two or more primer in one direction for a gene, repeat other direction's record to ensure one line and next line form a pair for one gene. To get better understand of output, you may use another gene name for the second pair of primers.**
-
-For example:
-
-
->    rbcL,rbcLF,ATCGATCGATCGA,f
-
->    **rbcL,rbcLR,TACGTACGTACG,r**
-
->    rbcL2,rbcLF,TTAATTCGATCGA,f
-
->    **rbcL2,rbcLR,TACGTACGTACG,r**
 
 You can use Microsoft Excel to prepare these two files and save as CSV format, or use any text editor you prefer.
 
