@@ -91,6 +91,7 @@ def blast_and_parse(query_file, db_file):
 
 def divide_gene(head_file, divided_files):
     # generate primer db
+    os.mkdir(os.path.join(arg.output, 'split_by_gene'))
     primer = list()
     with open(arg.primer_file, 'r') as input_file:
         for line in input_file:
@@ -132,7 +133,7 @@ def divide_gene(head_file, divided_files):
                 # output merged file
                 if not arg.no_merge_gene:
                     handle_gene = open(os.path.join(
-                        arg.output, gene_name+'.fastq'), 'a')
+                        arg.output, 'split_by_gene', gene_name+'.fastq'), 'a')
                     SeqIO.write(record, handle_gene, 'fastq')
     return sample_count, gene_count
 
