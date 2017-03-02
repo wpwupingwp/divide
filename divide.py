@@ -121,16 +121,17 @@ def divide_gene(head_file, divided_files):
             gene = record.description
             if gene in blast_result:
                 sample_count[fastq_file] += 1
-                gene_count[blast_result[gene].split(sep='_')[1]] += 1
-                barcode = os.path.basename(fastq_file).replace('.fastq', '')
-                record.id = '|'.join([barcode, blast_result[gene], ''])
-                handle = open('{0}_{1}.fastq'.format(
-                    fastq_file.replace('.fastq', ''), blast_result[gene]), 'a')
+                primer_name, gene_name = blast_result[gene].split(sep='_')
+                gene_count[gene_name] += 1
+                barcode = fastq_file.replace('.fastq', '')
+                record.id = '|'.join([primer_name, gene_name, barcode, ''])
+                handle = open('{0}_{1}.fastq'.format(barcode, primer_name),
+                              'a')
                 SeqIO.write(record, handle, 'fastq')
                 # output merged file
                 if not arg.no_merge_gene:
                     handle_gene = open(os.path.join(
-                        arg.output, blast_result[gene]+'.fastq'), 'a')
+                        arg.output, gene_name+'.fastq'), 'a')
                     SeqIO.write(record, handle_gene, 'fastq')
     return sample_count, gene_count
 
