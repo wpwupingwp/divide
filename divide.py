@@ -109,7 +109,7 @@ def divide_gene(head_file, divided_files):
             output.write('>{0}_{1}\n{2}\n'.format(primer_name, gene_name,
                                                   sequence))
     # blast and parse
-    db_name = primer_file.replace('.fasta', '')
+    db_name = os.path.splitext(primer_file)[0]
     run('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
         primer_file, db_name), shell=True)
     blast_result = blast_and_parse(head_file, db_name)
@@ -124,7 +124,7 @@ def divide_gene(head_file, divided_files):
                 sample_count[fastq_file] += 1
                 primer_name, gene_name = blast_result[gene].split(sep='_')
                 gene_count[gene_name] += 1
-                barcode = fastq_file.replace('.fastq', '')
+                barcode = os.path.splitext(fastq_file)[0]
                 record.id = '|'.join([primer_name, gene_name,
                                       os.path.basename(barcode), ''])
                 handle = open('{0}_{1}.fastq'.format(barcode, primer_name),
