@@ -34,7 +34,7 @@ You can use Microsoft Excel to prepare these two files and save as CSV format, o
 
 **Make sure you don't miss the first line.**
 
-#join_fastq.py
+# join_fastq.py
 
 When you use flash or other software to combine sequence of two directions,
 usually you got a lot of data could not be assemblied directly. This program
