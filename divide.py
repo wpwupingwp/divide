@@ -193,7 +193,7 @@ def main():
                         backward''')
     parser.add_argument('-m', dest='mode', default='5-2',
                         help='''barcode mode, default value is 5-2, i.e.,
-                        barcode with length 5 repeated twice''')
+                        barcode with length 5 repeated 2 times''')
     parser.add_argument('--no_merge_gene', action='store_true',
                         help='merge output files by gene')
     parser.add_argument('input', help='input file, fastq format')
@@ -212,6 +212,7 @@ def main():
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))
+
 
 if __name__ == '__main__':
     main()
