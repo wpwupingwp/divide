@@ -173,6 +173,7 @@ def main():
     [Barcode][Primer Adapter][Primer][Sequence][Barcode][Primer Adapter][Primer][Sequence]
     """
     start_time = timer()
+    global arg
     arg = argparse.ArgumentParser()
     arg.add_argument('--primer_adapter', default=14, type=int,
                      help='length of primer_adapter, typical 14 for AFLP')
@@ -191,7 +192,6 @@ def main():
                      help='merge output files by gene')
     arg.add_argument('input', help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='out', help='output path')
-    global arg
     arg = arg.parse_args()
     if not os.path.exists(arg.output):
         os.mkdir(arg.output)
