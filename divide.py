@@ -16,7 +16,7 @@ def divide_barcode():
     #  parse_mode(mode):
     barcode_len, repeat = [int(i) for i in arg.mode.split('*')]
     barcode_full_len = barcode_len * repeat
-    skip = barcode_full_len + arg.primer_adapter
+    skip = barcode_full_len + arg.adapter
     # get barcode dict
     barcode = dict()
     with open(arg.barcode_file, 'r') as input_file:
@@ -160,23 +160,18 @@ def divide_gene(head_file, divided_files):
     return sample_count, gene_count
 
 
-
-
 def main():
-    # todo
-    # implement mode
-    # check input
     """
     Sequence likes this:
-    [Barcode][Primer Adapter][Primer][Sequence]
+    [Barcode][Adapter][Primer][Sequence]
     Or:
-    [Barcode][Primer Adapter][Primer][Sequence][Barcode][Primer Adapter][Primer][Sequence]
+    [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
     """
     start_time = timer()
     global arg
     arg = argparse.ArgumentParser()
-    arg.add_argument('--primer_adapter', default=14, type=int,
-                     help='length of primer_adapter, typical 14 for AFLP')
+    arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
+                     help='length of adapter, typical 14 for AFLP')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
     arg.add_argument('-p', dest='primer_file',
