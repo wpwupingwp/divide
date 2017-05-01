@@ -4,6 +4,7 @@ import argparse
 import os
 from Bio import SearchIO, SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
+from collections import defaultdict
 from multiprocessing import cpu_count
 from subprocess import run
 from timeit import default_timer as timer
@@ -11,6 +12,7 @@ from timeit import default_timer as timer
 
 def divide_barcode():
     SEARCH_LEN = 20
+    statistics = defaultdict(lambda: 0)
     #  parse_mode(mode):
     barcode_len, repeat = [int(i) for i in arg.mode.split('*')]
     barcode_full_len = barcode_len * repeat
@@ -22,10 +24,9 @@ def divide_barcode():
             if line.startswith('barcode') or line.startswith('Barcode'):
                 continue
             line = line.split(sep=',')
-            barcode[line[0]] = line[1].strip()
+            barcode[line[0].upper()] = line[1].strip()
     # analyze input files
     divided_files = set()
-    statistics = {'mismatch': 0, 'mode_wrong': 0, 'total': 0}
     fastq_raw = SeqIO.parse(arg.input, 'fastq')
     handle_miss = open(os.path.join(arg.output, 'barcode_miss.fastq'), 'w')
     head_file = os.path.join(arg.output, 'head.fasta')
