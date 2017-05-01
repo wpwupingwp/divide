@@ -28,7 +28,7 @@ def divide_barcode():
     # analyze input files
     divided_files = set()
     fastq_raw = SeqIO.parse(arg.input, 'fastq')
-    handle_miss = open(os.path.join(arg.output, 'barcode_miss.fastq'), 'w')
+    handle_wrong = open(os.path.join(arg.output, 'barcode_wrong.fastq'), 'w')
     head_file = os.path.join(arg.output, 'head.fasta')
     handle_fasta = open(head_file, 'w')
     for record in fastq_raw:
@@ -43,30 +43,38 @@ def divide_barcode():
             barcode_split_f.append(barcode_f[start:(start+barcode_len)])
             barcode_split_r.append(barcode_r[start:(start+barcode_len)])
         # for default, only judge if barcode in 5' is right
+        if barcode_f not in barcode:
+            statistics['head_barcode_mismatch'] += 1
+            SeqIO.write(record, handle_wrong, 'fastq')
+            continue
         # here use list.count
         if barcode_split_f.count(barcode_split_f[0]) != len(barcode_split_f):
-            statistics['mode_wrong'] += 1
+            statistics['head_barcode_mode_wrong'] += 1
+            SeqIO.write(record, handle_wrong, 'fastq')
             continue
-        if barcode_f not in barcode:
-            statistics['left_barcode_wrong'] += 1
         if arg.strict:
-            condition = (record_barcode[0] in barcode and
-                         record_barcode[1] in barcode)
-        else:
-            condition = (record_barcode[0] in barcode)
-        if condition:
-            name = barcode[record_barcode[0]]
-            output_file = os.path.join(arg.output, name)
-            divided_files.add(output_file)
-            with open(output_file, 'a') as handle:
-                SeqIO.write(record, handle, 'fastq')
-            handle_fasta.write('>{0}\n{1}\n'.format(
-                record.description,
-                record.seq[skip:skip + SEARCH_LEN]))
-        else:
-            SeqIO.write(record, handle_miss, 'fastq')
-            statistics['mismatch'] += 1
-    handle_miss.close()
+            if barcode_f != barcode_r:
+                statistics['head_tail_barcode_unequal'] += 1
+                SeqIO.write(record, handle_wrong, 'fastq')
+                continue
+            if barcode_r not in barcode:
+                statistics['tail_barcode_mismatch'] += 1
+                SeqIO.write(record, handle_wrong, 'fastq')
+                continue
+            if barcode_split_r.count(barcode_split_r[0]) != len(
+                    barcode_split_r):
+                statistics['tail_barcode_mode_wrong'] += 1
+                SeqIO.write(record, handle_wrong, 'fastq')
+                continue
+        name = barcode[barcode_f]
+        output_file = os.path.join(arg.output, name)
+        divided_files.add(output_file)
+        with open(output_file, 'a') as handle:
+            SeqIO.write(record, handle, 'fastq')
+        handle_fasta.write('>{0}\n{1}\n'.format(
+            record.description,
+            record.seq[skip:(skip+SEARCH_LEN)]))
+    handle_wrong.close()
     handle_fasta.close()
     return statistics, head_file, divided_files
 
