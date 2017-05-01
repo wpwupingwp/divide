@@ -1,0 +1,5 @@
+1. test divide_barcode
+2. rewrite divide_gene to
+    a. generate files in different folder
+    b. use simple primer.csv
+3. write README
