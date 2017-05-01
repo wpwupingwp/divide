@@ -160,16 +160,6 @@ def divide_gene(head_file, divided_files):
     return sample_count, gene_count
 
 
-def print_stats(barcode, sample, gene):
-    with open(os.path.join(arg.output, 'barcode_info.csv'), 'w') as handle:
-        for record in barcode.items():
-            handle.write('{0},{1} \n'.format(*record))
-    with open(os.path.join(arg.output, 'sample_info.csv'), 'w') as handle:
-        for record in sample.items():
-            handle.write('{0},{1} \n'.format(*record))
-    with open(os.path.join(arg.output, 'gene_info.csv'), 'w') as handle:
-        for record in gene.items():
-            handle.write('{0},{1} \n'.format(*record))
 
 
 def main():
@@ -207,8 +197,16 @@ def main():
         os.mkdir(arg.output)
 
     barcode_info, head_file, divided_files = divide_barcode(arg.mode)
-    sample_count, gene_count = divide_gene(head_file, divided_files)
-    print_stats(barcode_info, sample_count, gene_count)
+    sample_info, gene_info = divide_gene(head_file, divided_files)
+    with open(os.path.join(arg.output, 'barcode_info.csv'), 'w') as handle:
+        for record in barcode_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    with open(os.path.join(arg.output, 'sample_info.csv'), 'w') as handle:
+        for record in sample_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    with open(os.path.join(arg.output, 'gene_info.csv'), 'w') as handle:
+        for record in gene_info .items():
+            handle.write('{0},{1} \n'.format(*record))
 
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
