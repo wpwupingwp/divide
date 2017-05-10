@@ -71,7 +71,7 @@ def divide_barcode(folder):
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
         name = barcode[barcode_f]
-        output_file = os.path.join(folder, name)
+        output_file = os.path.join(folder, name+'.fastq')
         divided_files.add(output_file)
         with open(output_file, 'a') as handle:
             SeqIO.write(record, handle, 'fastq')
