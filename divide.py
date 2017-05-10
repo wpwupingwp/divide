@@ -4,55 +4,77 @@ import argparse
 import os
 from Bio import SearchIO, SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
+from collections import defaultdict
 from multiprocessing import cpu_count
 from subprocess import run
 from timeit import default_timer as timer
 
 
-def divide_barcode(barcode_len, skip):
+def divide_barcode():
+    SEARCH_LEN = 20
+    statistics = defaultdict(lambda: 0)
+    #  parse_mode(mode):
+    barcode_len, repeat = [int(i) for i in arg.mode.split('*')]
+    barcode_full_len = barcode_len * repeat
+    skip = barcode_full_len + arg.primer_adapter
     # get barcode dict
     barcode = dict()
     with open(arg.barcode_file, 'r') as input_file:
         for line in input_file:
-            if line.startswith('barcode'):
+            if line.startswith('barcode') or line.startswith('Barcode'):
                 continue
             line = line.split(sep=',')
-            barcode[line[0]] = line[1].strip()
+            barcode[line[0].upper()] = line[1].strip()
     # analyze input files
     divided_files = set()
-    SEARCH_LEN = 20
-    half = barcode_len // 2
-    statistics = {'mismatch': 0, 'mode_wrong': 0, 'total': 0}
     fastq_raw = SeqIO.parse(arg.input, 'fastq')
-    handle_miss = open(os.path.join(arg.output, 'barcode_miss.fastq'), 'w')
+    handle_wrong = open(os.path.join(arg.output, 'barcode_wrong.fastq'), 'w')
     head_file = os.path.join(arg.output, 'head.fasta')
     handle_fasta = open(head_file, 'w')
     for record in fastq_raw:
         statistics['total'] += 1
         # ignore wrong barcode
-        if str(record.seq[:half]) != str(record.seq[half:barcode_len]):
-            statistics['mode_wrong'] += 1
+        barcode_f = str(record.seq[:barcode_full_len])
+        barcode_r = str(record.seq[-barcode_full_len:])[::-1]
+        barcode_split_f = list()
+        barcode_split_r = list()
+        for index in range(repeat-1):
+            start = 0 + barcode_len * index
+            barcode_split_f.append(barcode_f[start:(start+barcode_len)])
+            barcode_split_r.append(barcode_r[start:(start+barcode_len)])
+        # for default, only judge if barcode in 5' is right
+        if barcode_f not in barcode:
+            statistics['head_barcode_mismatch'] += 1
+            SeqIO.write(record, handle_wrong, 'fastq')
             continue
-        record_barcode = [str(record.seq[:barcode_len]),
-                          str(record.seq[:-(barcode_len + 1):-1])]
+        # here use list.count
+        if barcode_split_f.count(barcode_split_f[0]) != len(barcode_split_f):
+            statistics['head_barcode_mode_wrong'] += 1
+            SeqIO.write(record, handle_wrong, 'fastq')
+            continue
         if arg.strict:
-            condition = (record_barcode[0] in barcode and
-                         record_barcode[1] in barcode)
-        else:
-            condition = (record_barcode[0] in barcode)
-        if condition:
-            name = barcode[record_barcode[0]]
-            output_file = os.path.join(arg.output, name)
-            divided_files.add(output_file)
-            with open(output_file, 'a') as handle:
-                SeqIO.write(record, handle, 'fastq')
-            handle_fasta.write('>{0}\n{1}\n'.format(
-                record.description,
-                record.seq[skip:skip + SEARCH_LEN]))
-        else:
-            SeqIO.write(record, handle_miss, 'fastq')
-            statistics['mismatch'] += 1
-    handle_miss.close()
+            if barcode_f != barcode_r:
+                statistics['head_tail_barcode_unequal'] += 1
+                SeqIO.write(record, handle_wrong, 'fastq')
+                continue
+            if barcode_r not in barcode:
+                statistics['tail_barcode_mismatch'] += 1
+                SeqIO.write(record, handle_wrong, 'fastq')
+                continue
+            if barcode_split_r.count(barcode_split_r[0]) != len(
+                    barcode_split_r):
+                statistics['tail_barcode_mode_wrong'] += 1
+                SeqIO.write(record, handle_wrong, 'fastq')
+                continue
+        name = barcode[barcode_f]
+        output_file = os.path.join(arg.output, name)
+        divided_files.add(output_file)
+        with open(output_file, 'a') as handle:
+            SeqIO.write(record, handle, 'fastq')
+        handle_fasta.write('>{0}\n{1}\n'.format(
+            record.description,
+            record.seq[skip:(skip+SEARCH_LEN)]))
+    handle_wrong.close()
     handle_fasta.close()
     return statistics, head_file, divided_files
 
@@ -138,16 +160,6 @@ def divide_gene(head_file, divided_files):
     return sample_count, gene_count
 
 
-def print_stats(barcode, sample, gene):
-    with open(os.path.join(arg.output, 'barcode_info.csv'), 'w') as handle:
-        for record in barcode.items():
-            handle.write('{0},{1} \n'.format(*record))
-    with open(os.path.join(arg.output, 'sample_info.csv'), 'w') as handle:
-        for record in sample.items():
-            handle.write('{0},{1} \n'.format(*record))
-    with open(os.path.join(arg.output, 'gene_info.csv'), 'w') as handle:
-        for record in gene.items():
-            handle.write('{0},{1} \n'.format(*record))
 
 
 def main():
@@ -155,59 +167,46 @@ def main():
     # implement mode
     # check input
     """
-    Step 1, divide data by barcode.
-    Step 2, divide data by primer via BLAST.
-    Ensure that you have installed BLAST suite before.
-    Make sure you don't miss the first line.
-    Barcode file looks like this:
-    ATACG,BOP00001
-    Primer file looks like this:
-    gene,primer,sequence,direction
-    rbcL,rbcLF,ATCGATCGATCGA
-    rbcL,rbcLR,TACGTACGTACG
-    Make sure you don't miss the first line and the capitalization.
-    To get these two files, save your excel file as csv file.  Be carefull
-    of the order of  each pair of primers.
-    From left to right, there are:
-    1. gene name
-    2. primer name
-    3. primer sequence
-    4. forward/backward
+    Sequence likes this:
+    [Barcode][Primer Adapter][Primer][Sequence]
+    Or:
+    [Barcode][Primer Adapter][Primer][Sequence][Barcode][Primer Adapter][Primer][Sequence]
     """
-    print(main.__doc__)
     start_time = timer()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--barcode_length', default=10, type=int,
-                        help='length of barcode')
-    parser.add_argument('--primer_adapter', default=14, type=int,
-                        help='length of primer_adapter, typical 14 for AFLP')
-    parser.add_argument('-b', dest='barcode_file',
-                        help='csv file containing barcode info')
-    parser.add_argument('-p', dest='primer_file',
-                        help='csv file containing primer info')
-    parser.add_argument('-e', dest='evalue', default=1e-5, type=float,
-                        help='evalue for BLAST')
-    parser.add_argument('-s', '--strict', action='store_true',
-                        help='''if set no strict, it will only consider
-                        barcode on the forward; if not, consider forward and
-                        backward''')
-    parser.add_argument('-m', dest='mode', default='5-2',
-                        help='''barcode mode, default value is 5-2, i.e.,
+    arg = argparse.ArgumentParser()
+    arg.add_argument('--primer_adapter', default=14, type=int,
+                     help='length of primer_adapter, typical 14 for AFLP')
+    arg.add_argument('-b', dest='barcode_file',
+                     help='csv file containing barcode info')
+    arg.add_argument('-p', dest='primer_file',
+                     help='csv file containing primer info')
+    arg.add_argument('-e', dest='evalue', default=1e-5, type=float,
+                     help='evalue for BLAST')
+    arg.add_argument('-s', '--strict', action='store_true',
+                     help="if set, consider barcode on the 5' and 3'")
+    arg.add_argument('-m', dest='mode', default='5*2',
+                     help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    parser.add_argument('--no_merge_gene', action='store_true',
-                        help='merge output files by gene')
-    parser.add_argument('input', help='input file, fastq format')
-    parser.add_argument('-o', dest='output', default='out', help='output path')
+    arg.add_argument('--no_merge_gene', action='store_true',
+                     help='merge output files by gene')
+    arg.add_argument('input', help='input file, fastq format')
+    arg.add_argument('-o', dest='output', default='out', help='output path')
     global arg
-    arg = parser.parse_args()
-    skip = arg.barcode_length + arg.primer_adapter
+    arg = arg.parse_args()
     if not os.path.exists(arg.output):
         os.mkdir(arg.output)
 
-    barcode_info, head_file, divided_files = divide_barcode(
-        arg.barcode_length, skip)
-    sample_count, gene_count = divide_gene(head_file, divided_files)
-    print_stats(barcode_info, sample_count, gene_count)
+    barcode_info, head_file, divided_files = divide_barcode(arg.mode)
+    sample_info, gene_info = divide_gene(head_file, divided_files)
+    with open(os.path.join(arg.output, 'barcode_info.csv'), 'w') as handle:
+        for record in barcode_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    with open(os.path.join(arg.output, 'sample_info.csv'), 'w') as handle:
+        for record in sample_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    with open(os.path.join(arg.output, 'gene_info.csv'), 'w') as handle:
+        for record in gene_info .items():
+            handle.write('{0},{1} \n'.format(*record))
 
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
