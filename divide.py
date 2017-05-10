@@ -152,14 +152,13 @@ def divide_gene(head_file, divided_files, gene_folder, barcode_gene_folder):
                 barcode = os.path.splitext(fastq_file)[0]
                 barcode = os.path.basename(barcode)
                 record.id = '|'.join([gene_name, barcode, ''])
-                with open(os.path.join(
-                        barcode_gene_folder,
-                        '{0}.fastq'.format(barcode)), 'a') as handle:
+                handle_name = os.path.join(
+                    barcode_gene_folder, '{0}-{1}.fastq'.format(
+                        barcode, gene_name))
+                with open(handle_name, 'a') as handle:
                     SeqIO.write(record, handle, 'fastq')
-                # output merged file
-                if not arg.no_merge_gene:
-                    handle_gene = open(os.path.join(gene_folder,
-                                                    gene_name+'.fastq'), 'a')
+                    handle_gene = open(os.path.join(
+                        gene_folder, '{}.fastq'.format(gene_name)), 'a')
                     SeqIO.write(record, handle_gene, 'fastq')
     return sample_count, gene_count
 
@@ -187,8 +186,6 @@ def main():
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    arg.add_argument('--no_merge_gene', action='store_true',
-                     help='merge output files by gene')
     arg.add_argument('input', help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='out', help='output path')
     arg = arg.parse_args()
