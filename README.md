@@ -47,17 +47,15 @@ And notice that here it use **English comma** to seperate two  fields rather
 than **Chinese comma**.
 
 ## Primer file
-! to be continue
 Primer file looks like this:
 
->    primer,gene,sequence
+>    gene,forward,reverse
 
->    rbcL_F,rbcL,ATCGATCGATCGA
+>    rbcL,ATCGATCGATCGA,TACGTACGTACG
 
->    rbcL_R,rbcL,TACGTACGTACG
+>    matK,AAAATTTTCCCC,GGGGTTACCAAAA
 
-There is no limits for gene and primer name, except that you cannot use comma
-in them in order to avoid complicated seperator problem.
+>    ...
 
 You can use Microsoft Excel to prepare these two files and save as CSV format,
 or use any text editor you prefer.
