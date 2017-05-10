@@ -38,10 +38,14 @@ def divide_barcode(folder):
         barcode_r = str(record.seq[-barcode_full_len:])[::-1]
         barcode_split_f = list()
         barcode_split_r = list()
-        for index in range(repeat-1):
-            start = 0 + barcode_len * index
-            barcode_split_f.append(barcode_f[start:(start+barcode_len)])
-            barcode_split_r.append(barcode_r[start:(start+barcode_len)])
+        if repeat == 1:
+            barcode_split_f = [barcode_f, ]
+            barcode_split_r = [barcode_r, ]
+        else:
+            for index in range(repeat-1):
+                start = 0 + barcode_len * index
+                barcode_split_f.append(barcode_f[start:(start+barcode_len)])
+                barcode_split_r.append(barcode_r[start:(start+barcode_len)])
         # for default, only judge if barcode in 5' is right
         if barcode_f not in barcode:
             statistics['head_barcode_mismatch'] += 1
@@ -116,7 +120,7 @@ def divide_gene(head_file, divided_files, gene_folder, barcode_gene_folder):
     primer = list()
     with open(arg.primer_file, 'r') as input_file:
         for line in input_file:
-            if line.startswith(('Primer', 'primer')):
+            if line.startswith(('Gene', 'gene')):
                 continue
             line = line.split(sep=',')
             primer.append([i.strip() for i in line])
