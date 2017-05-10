@@ -62,8 +62,6 @@ or use any text editor you prefer.
 
 **Make sure you don't miss the first line.**
 
-## graph
-! to be continue
 
 # join_fastq.py
 
