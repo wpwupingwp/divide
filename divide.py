@@ -46,21 +46,13 @@ def get_primer_info(primer_file, output):
             line = line.split(sep=',')
             primer.append([i.strip() for i in line])
     # join primer pairs
-    gene_list = list()
     primer_file = os.path.join(output, 'primer.fasta')
     with open(primer_file, 'w') as output:
         for line in primer:
             gene_name, forward, reverse = line
-            gene_list.append(gene_name)
             output.write('>{0}\n{1}\n'.format(gene_name, forward))
             output.write('>{0}\n{1}\n'.format(gene_name, reverse))
-    return gene_list
-    # blast and parse
-    db_name = os.path.splitext(primer_file)[0]
-    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
-        primer_file, db_name), shell=True)
-    blast_result = blast_and_parse(head_file, db_name)
-    pass
+    return primer_file
 
 
 def check_vsearch():
@@ -143,17 +135,22 @@ def divide_barcode(merged, barcode, mode, strict,
     return statistics, head_file, divided_files
 
 
-def blast_and_parse(query_file, db_file, output):
-    # Use blastn-short for primers.
-    blast_result_file = os.path.join(arg.output, 'BlastResult.xml')
+def blast_and_parse(query_file, db_file, evalue, output):
+    # build db
+    db_name = os.path.splitext(db_file)[0]
+    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
+        db_file, db_name), shell=True)
+    blast_result_file = os.path.join(output, 'BlastResult.xml')
     cmd = nb(
         num_threads=cpu_count(),
         query=query_file,
         db=db_file,
+        # Use blastn-short for primers.
         task='blastn-short',
         max_target_seqs=1,
         max_hsps=1,
-        evalue=arg.evalue,
+        evalue=evalue,
+        # xml output
         outfmt=5,
         out=blast_result_file
     )
@@ -175,7 +172,11 @@ def blast_and_parse(query_file, db_file, output):
     return parse_result
 
 
-def divide_gene(head_file, divided_files, gene_folder, barcode_gene_folder):
+def divide_gene(blast_result, divided_files, output):
+    gene_folder = os.path.join(output, 'GENE')
+    barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
+    os.mkdir(gene_folder)
+    os.mkdir(barcode_gene_folder)
     # split and count
     sample_count = {i: 0 for i in divided_files}
     gene_count = defaultdict(lambda: 0)
@@ -231,22 +232,20 @@ def main():
         os.mkdir(arg.output)
     except:
         raise Exception('output exists, please use another name')
-    gene_folder = os.path.join(arg.output, 'GENE')
-    barcode_gene_folder = os.path.join(arg.output, 'BARCODE-GENE')
-    os.mkdir(gene_folder)
-    os.mkdir(barcode_gene_folder)
 
     merged = flash(arg.input, arg.output)
     barcode = get_barcode_info(arg.barcode_file)
-    primer = get_primer_info(arg.primer_file, arg.output)
+    primer_file = get_primer_info(arg.primer_file, arg.output)
     barcode_info, head_file, divided_files = divide_barcode(merged,
                                                             barcode,
                                                             arg.mode,
                                                             arg.strict,
                                                             arg.adapter,
                                                             arg.output)
-    sample_info, gene_info = divide_gene(head_file, divided_files,
-                                         gene_folder, barcode_gene_folder)
+    parse_result = blast_and_parse(head_file, primer_file,
+                                   arg.evalue, arg.output)
+    sample_info, gene_info = divide_gene(parse_result,
+                                         divided_files, arg.output)
     with open(os.path.join(arg.output, 'barcode_info.csv'), 'w') as handle:
         for record in barcode_info.items():
             handle.write('{0},{1} \n'.format(*record))
