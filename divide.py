@@ -220,3 +220,31 @@ def main():
 
 if __name__ == '__main__':
     main()
+from subprocess import call
+from sys import argv
+import os
+
+
+def check_flash():
+    for flash in ['flash2', 'flash']:
+        check = call('{} --version'.format(flash), shell=True)
+        if check.returncode == 0:
+            return flash
+    raise Exception('FLASH not found!')
+
+
+def check_vsearch():
+    vsearch = 'vsearch'
+    check = call('{} --version'.format(vsearch, shell=True))
+    if check.returncode == 0:
+        return vsearch
+    else:
+        return None
+
+
+
+def main():
+    F = argv[1]
+    R = argv[2]
+    call('flash2 {0} {1} -o {2}'.format(F, R, 'flash-merge'), shell=True)
+    #     F, R, arg.out_prefix, arg.out_directory) , shell=True) #  test.extendedFrags.fastq test.notCombined_1.fastq test.notCombined_2.fastq
