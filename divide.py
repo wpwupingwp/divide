@@ -19,11 +19,48 @@ def flash(files, output):
             check = call('{} --version'.format(flash), shell=True)
             if check.returncode == 0:
                 call('{0} {1} {2} -d {3} -o out'.format(
-                    flash, files[0], files[1], arg.output), shell=True)
+                    flash, files[0], files[1], output), shell=True)
                 return os.path.join(output, 'out.extendedFrags.fastq')
         raise Exception('FLASH not found!')
     else:
         raise Exception('Only support single or pair-end input!')
+
+
+def get_barcode_info(barcode_file):
+    barcode_info = dict()
+    with open(barcode_file, 'r') as input_file:
+        for line in input_file:
+            if line.startswith(('barcode', 'Barcode')):
+                continue
+            line = line.split(sep=',')
+            barcode_info[line[0].upper()] = line[1].strip()
+    return barcode_info
+
+
+def get_primer_info(primer_file, output):
+    primer = list()
+    with open(primer_file, 'r') as input_file:
+        for line in input_file:
+            if line.startswith(('Gene', 'gene')):
+                continue
+            line = line.split(sep=',')
+            primer.append([i.strip() for i in line])
+    # join primer pairs
+    gene_list = list()
+    primer_file = os.path.join(output, 'primer.fasta')
+    with open(primer_file, 'w') as output:
+        for line in primer:
+            gene_name, forward, reverse = line
+            gene_list.append(gene_name)
+            output.write('>{0}\n{1}\n'.format(gene_name, forward))
+            output.write('>{0}\n{1}\n'.format(gene_name, reverse))
+    return gene_list
+    # blast and parse
+    db_name = os.path.splitext(primer_file)[0]
+    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
+        primer_file, db_name), shell=True)
+    blast_result = blast_and_parse(head_file, db_name)
+    pass
 
 
 def check_vsearch():
@@ -35,26 +72,24 @@ def check_vsearch():
         return None
 
 
-def divide_barcode(folder):
-    SEARCH_LEN = 20
+def divide_barcode(merged, barcode, mode, strict,
+                   adapter_length, output):
+    # prepare input
+    barcode_folder = os.path.join(output, 'BARCODE')
+    os.mkdir(barcode_folder)
+
+    # edit it according to primer length
+    SEARCH_LEN = 25
     statistics = defaultdict(lambda: 0)
     #  parse_mode(mode):
-    barcode_len, repeat = [int(i) for i in arg.mode.split('*')]
+    barcode_len, repeat = [int(i) for i in mode.split('*')]
     barcode_full_len = barcode_len * repeat
-    skip = barcode_full_len + arg.adapter
-    # get barcode dict
-    barcode = dict()
-    with open(arg.barcode_file, 'r') as input_file:
-        for line in input_file:
-            if line.startswith(('barcode', 'Barcode')):
-                continue
-            line = line.split(sep=',')
-            barcode[line[0].upper()] = line[1].strip()
+    skip = barcode_full_len + adapter_length
     # analyze input files
     divided_files = set()
-    fastq_raw = SeqIO.parse(arg.input, 'fastq')
-    handle_wrong = open(os.path.join(arg.output, 'barcode_wrong.fastq'), 'w')
-    head_file = os.path.join(arg.output, 'head.fasta')
+    fastq_raw = SeqIO.parse(merged, 'fastq')
+    handle_wrong = open(os.path.join(output, 'barcode_wrong.fastq'), 'w')
+    head_file = os.path.join(output, 'head.fasta')
     handle_fasta = open(head_file, 'w')
     for record in fastq_raw:
         statistics['total'] += 1
@@ -81,7 +116,7 @@ def divide_barcode(folder):
             statistics['head_barcode_mode_wrong'] += 1
             SeqIO.write(record, handle_wrong, 'fastq')
             continue
-        if arg.strict:
+        if strict:
             if barcode_f != barcode_r:
                 statistics['head_tail_barcode_unequal'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
@@ -96,7 +131,7 @@ def divide_barcode(folder):
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
         name = barcode[barcode_f]
-        output_file = os.path.join(folder, name+'.fastq')
+        output_file = os.path.join(barcode_folder, name+'.fastq')
         divided_files.add(output_file)
         with open(output_file, 'a') as handle:
             SeqIO.write(record, handle, 'fastq')
@@ -108,7 +143,7 @@ def divide_barcode(folder):
     return statistics, head_file, divided_files
 
 
-def blast_and_parse(query_file, db_file):
+def blast_and_parse(query_file, db_file, output):
     # Use blastn-short for primers.
     blast_result_file = os.path.join(arg.output, 'BlastResult.xml')
     cmd = nb(
@@ -141,31 +176,9 @@ def blast_and_parse(query_file, db_file):
 
 
 def divide_gene(head_file, divided_files, gene_folder, barcode_gene_folder):
-    # generate primer db
-    primer = list()
-    with open(arg.primer_file, 'r') as input_file:
-        for line in input_file:
-            if line.startswith(('Gene', 'gene')):
-                continue
-            line = line.split(sep=',')
-            primer.append([i.strip() for i in line])
-    # join primer pairs
-    gene_list = list()
-    primer_file = os.path.join(arg.output, 'primer.fasta')
-    with open(primer_file, 'w') as output:
-        for line in primer:
-            gene_name, forward, reverse = line
-            gene_list.append(gene_name)
-            output.write('>{0}\n{1}\n'.format(gene_name, forward))
-            output.write('>{0}\n{1}\n'.format(gene_name, reverse))
-    # blast and parse
-    db_name = os.path.splitext(primer_file)[0]
-    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
-        primer_file, db_name), shell=True)
-    blast_result = blast_and_parse(head_file, db_name)
     # split and count
     sample_count = {i: 0 for i in divided_files}
-    gene_count = {i: 0 for i in gene_list}
+    gene_count = defaultdict(lambda: 0)
     for fastq_file in divided_files:
         records = SeqIO.parse(fastq_file, 'fastq')
         for record in records:
@@ -196,7 +209,6 @@ def main():
     [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
     """
     start_time = timer()
-    global arg
     arg = argparse.ArgumentParser()
     arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
                      help='length of adapter, typical 14 for AFLP')
@@ -211,21 +223,28 @@ def main():
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    arg.add_argument('input', dest='input', help='input file, fastq format')
+    arg.add_argument('input', nargs='+', dest='input',
+                     help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='Result', help='output path')
     arg = arg.parse_args()
     try:
         os.mkdir(arg.output)
     except:
         raise Exception('output exists, please use another name')
-    barcode_folder = os.path.join(arg.output, 'BARCODE')
     gene_folder = os.path.join(arg.output, 'GENE')
     barcode_gene_folder = os.path.join(arg.output, 'BARCODE-GENE')
-    os.mkdir(barcode_folder)
     os.mkdir(gene_folder)
     os.mkdir(barcode_gene_folder)
 
-    barcode_info, head_file, divided_files = divide_barcode(barcode_folder)
+    merged = flash(arg.input, arg.output)
+    barcode = get_barcode_info(arg.barcode_file)
+    primer = get_primer_info(arg.primer_file, arg.output)
+    barcode_info, head_file, divided_files = divide_barcode(merged,
+                                                            barcode,
+                                                            arg.mode,
+                                                            arg.strict,
+                                                            arg.adapter,
+                                                            arg.output)
     sample_info, gene_info = divide_gene(head_file, divided_files,
                                          gene_folder, barcode_gene_folder)
     with open(os.path.join(arg.output, 'barcode_info.csv'), 'w') as handle:
