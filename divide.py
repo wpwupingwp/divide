@@ -6,8 +6,33 @@ from Bio import SearchIO, SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
 from collections import defaultdict
 from multiprocessing import cpu_count
-from subprocess import run
+from subprocess import call
 from timeit import default_timer as timer
+
+
+def flash(files, output):
+    # check flash
+    if len(files) == 1:
+        return files[0]
+    elif len(files) == 2:
+        for flash in ['flash2', 'flash']:
+            check = call('{} --version'.format(flash), shell=True)
+            if check.returncode == 0:
+                call('{0} {1} {2} -d {3} -o out'.format(
+                    flash, files[0], files[1], arg.output), shell=True)
+                return os.path.join(output, 'out.extendedFrags.fastq')
+        raise Exception('FLASH not found!')
+    else:
+        raise Exception('Only support single or pair-end input!')
+
+
+def check_vsearch():
+    vsearch = 'vsearch'
+    check = call('{} --version'.format(vsearch, shell=True))
+    if check.returncode == 0:
+        return vsearch
+    else:
+        return None
 
 
 def divide_barcode(folder):
@@ -135,7 +160,7 @@ def divide_gene(head_file, divided_files, gene_folder, barcode_gene_folder):
             output.write('>{0}\n{1}\n'.format(gene_name, reverse))
     # blast and parse
     db_name = os.path.splitext(primer_file)[0]
-    run('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
+    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
         primer_file, db_name), shell=True)
     blast_result = blast_and_parse(head_file, db_name)
     # split and count
@@ -186,8 +211,8 @@ def main():
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    arg.add_argument('input', help='input file, fastq format')
-    arg.add_argument('-o', dest='output', default='out', help='output path')
+    arg.add_argument('input', dest='input', help='input file, fastq format')
+    arg.add_argument('-o', dest='output', default='Result', help='output path')
     arg = arg.parse_args()
     try:
         os.mkdir(arg.output)
@@ -220,31 +245,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-from subprocess import call
-from sys import argv
-import os
-
-
-def check_flash():
-    for flash in ['flash2', 'flash']:
-        check = call('{} --version'.format(flash), shell=True)
-        if check.returncode == 0:
-            return flash
-    raise Exception('FLASH not found!')
-
-
-def check_vsearch():
-    vsearch = 'vsearch'
-    check = call('{} --version'.format(vsearch, shell=True))
-    if check.returncode == 0:
-        return vsearch
-    else:
-        return None
-
-
-
-def main():
-    F = argv[1]
-    R = argv[2]
-    call('flash2 {0} {1} -o {2}'.format(F, R, 'flash-merge'), shell=True)
-    #     F, R, arg.out_prefix, arg.out_directory) , shell=True) #  test.extendedFrags.fastq test.notCombined_1.fastq test.notCombined_2.fastq
