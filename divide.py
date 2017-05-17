@@ -144,7 +144,7 @@ def blast_and_parse(query_file, db_file, evalue, output):
     cmd = nb(
         num_threads=cpu_count(),
         query=query_file,
-        db=db_file,
+        db=db_name,
         # Use blastn-short for primers.
         task='blastn-short',
         max_target_seqs=1,
@@ -224,8 +224,7 @@ def main():
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    arg.add_argument('input', nargs='+', dest='input',
-                     help='input file, fastq format')
+    arg.add_argument('input', nargs='+', help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='Result', help='output path')
     arg = arg.parse_args()
     try:
