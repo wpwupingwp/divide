@@ -3,6 +3,7 @@
 import argparse
 import os
 from Bio import SearchIO, SeqIO
+from Bio.Seq import Seq
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
 from collections import defaultdict
 from multiprocessing import cpu_count
@@ -90,7 +91,10 @@ def divide_barcode(merged, barcode, mode, strict,
         statistics['total'] += 1
         # ignore wrong barcode
         barcode_f = str(record.seq[:barcode_full_len])
-        barcode_r = str(record.seq[-barcode_full_len:])[::-1]
+        barcode_r = record.seq[-barcode_full_len:]
+        # reverse complement for sequence end
+        barcode_r = barcode_r.reverse_complement()
+        barcode_r = str(barcode_r)
         barcode_split_f = list()
         barcode_split_r = list()
         if repeat == 1:
