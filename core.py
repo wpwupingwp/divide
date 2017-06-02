@@ -94,7 +94,7 @@ def divide_run(merged, barcode, primer_file, mode, strict,
     cmd = nb(
         num_threads=cpu_count(),
         query=head_file,
-        db=primer_file,
+        db=db_name,
         # Use blastn-short for primers.
         task='blastn-short',
         max_target_seqs=1,
@@ -121,7 +121,7 @@ def divide_run(merged, barcode, primer_file, mode, strict,
         parse_result[query_info] = hit_info
 
 
-# def divide_gene(blast_result, divided_files, output):
+# def divide_gene(parse_result, divided_files, output):
     gene_folder = os.path.join(output, 'GENE')
     barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
     os.mkdir(gene_folder)
@@ -133,9 +133,9 @@ def divide_run(merged, barcode, primer_file, mode, strict,
         records = SeqIO.parse(fastq_file, 'fastq')
         for record in records:
             gene = record.description
-            if gene in blast_result:
+            if gene in parse_result:
                 sample_count[fastq_file] += 1
-                gene_name = blast_result[gene]
+                gene_name = parse_result[gene]
                 gene_count[gene_name] += 1
                 barcode = os.path.splitext(fastq_file)[0]
                 barcode = os.path.basename(barcode)
