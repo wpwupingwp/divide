@@ -2,10 +2,9 @@
 
 import argparse
 import os
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from subprocess import call
 from timeit import default_timer as timer
-
 from core import divide_run
 
 
@@ -66,6 +65,10 @@ def check_vsearch():
         return None
 
 
+def run(data):
+    divide_run(data, barcode, primer_file, arg.mode,
+               arg.strict, arg.adapter, arg.evalue, arg.output)
+
 
 def main():
     """
@@ -75,6 +78,7 @@ def main():
     [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
     """
     start_time = timer()
+    global arg
     arg = argparse.ArgumentParser()
     arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
                      help='length of adapter, typical 14 for AFLP')
@@ -97,12 +101,21 @@ def main():
     except:
         raise Exception('output exists, please use another name')
 
-    merged = flash(arg.input, arg.output)
+    global barcode
     barcode = get_barcode_info(arg.barcode_file)
+    global primer_file
     primer_file = get_primer_info(arg.primer_file, arg.output)
-    divide_run(merged, barcode, primer_file, arg.mode, arg.strict,
-               arg.adapter, arg.evalue, arg.output)
+    # split
+    merged = flash(arg.input, arg.output)
+    # parallel
 
+
+    pool = Pool(cpu_count()-1)
+    result = pool.map(run, merged)
+    pool.close()
+    pool.join()
+
+    print(result)
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))

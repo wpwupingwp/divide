@@ -79,7 +79,8 @@ def divide_run(merged, barcode, primer_file, mode, strict,
             record.seq[skip:(skip+SEARCH_LEN)]))
     handle_wrong.close()
     handle_fasta.close()
-    with open(os.path.join(output, 'barcode_info.csv'), 'w') as stat_out:
+    barcode_info = os.path.join(output, 'barcode_info.csv')
+    with open(barcode_info, 'w') as stat_out:
         for record in barcode_info.items():
             stat_out.write('{0},{1} \n'.format(*record))
 #     return statistics, head_file, divided_files
@@ -150,9 +151,13 @@ def divide_run(merged, barcode, primer_file, mode, strict,
                     SeqIO.write(record, handle_gene, 'fastq')
 #    return sample_count, gene_count
     # write statistics
-    with open(os.path.join(output, 'sample_info.csv'), 'w') as handle:
+    sample_info = os.path.join(output, 'sample_info.csv')
+    with open(sample_info, 'w') as handle:
         for record in sample_count.items():
             handle.write('{0},{1} \n'.format(*record))
-    with open(os.path.join(output, 'gene_info.csv'), 'w') as handle:
+    gene_info = os.path.join(output, 'gene_info.csv')
+    with open(gene_info, 'w') as handle:
         for record in gene_count .items():
             handle.write('{0},{1} \n'.format(*record))
+
+    return barcode_info, sample_info, gene_info
