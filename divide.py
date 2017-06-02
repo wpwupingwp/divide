@@ -17,7 +17,7 @@ def flash(files, output):
     elif len(files) == 2:
         for flash in ['flash2', 'flash']:
             check = call('{} --version'.format(flash), shell=True)
-            if check.returncode == 0:
+            if check == 0:
                 call('{0} {1} {2} -d {3} -o out'.format(
                     flash, files[0], files[1], output), shell=True)
                 return os.path.join(output, 'out.extendedFrags.fastq')
