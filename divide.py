@@ -49,9 +49,12 @@ def get_primer_info(primer_file, output):
     primer_file = os.path.join(output, 'primer.fasta')
     with open(primer_file, 'w') as output:
         for line in primer:
-            gene_name, forward, reverse = line
+            try:
+                gene_name, forward, reverse = line
+                output.write('>{0}\n{1}\n'.format(gene_name, reverse))
+            except:
+                gene_name, forward = line
             output.write('>{0}\n{1}\n'.format(gene_name, forward))
-            output.write('>{0}\n{1}\n'.format(gene_name, reverse))
     return primer_file
 
 
