@@ -103,15 +103,6 @@ def main():
     divide_run(merged, barcode, primer_file, arg.mode, arg.strict,
                arg.adapter, arg.evalue, arg.output)
 
-    sample_info, gene_info = divide_gene(parse_result,
-                                         divided_files, arg.output)
-    with open(os.path.join(arg.output, 'sample_info.csv'), 'w') as handle:
-        for record in sample_info.items():
-            handle.write('{0},{1} \n'.format(*record))
-    with open(os.path.join(arg.output, 'gene_info.csv'), 'w') as handle:
-        for record in gene_info .items():
-            handle.write('{0},{1} \n'.format(*record))
-
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))

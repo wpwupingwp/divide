@@ -8,7 +8,7 @@ from multiprocessing import cpu_count
 from subprocess import call
 
 
-def divide_run(merged, barcode, mode, strict,
+def divide_run(merged, barcode, primer_file, mode, strict,
                adapter_length, evalue, output):
     # prepare input
     barcode_folder = os.path.join(output, 'BARCODE')
@@ -16,7 +16,7 @@ def divide_run(merged, barcode, mode, strict,
 
     # edit it according to primer length
     SEARCH_LEN = 25
-    statistics = defaultdict(lambda: 0)
+    barcode_info = defaultdict(lambda: 0)
     #  parse_mode(mode):
     barcode_len, repeat = [int(i) for i in mode.split('*')]
     barcode_full_len = barcode_len * repeat
@@ -28,7 +28,7 @@ def divide_run(merged, barcode, mode, strict,
     head_file = os.path.join(output, 'head.fasta')
     handle_fasta = open(head_file, 'a')
     for record in fastq_raw:
-        statistics['total'] += 1
+        barcode_info['total'] += 1
         # ignore wrong barcode
         barcode_f = str(record.seq[:barcode_full_len])
         barcode_r = record.seq[-barcode_full_len:]
@@ -47,26 +47,26 @@ def divide_run(merged, barcode, mode, strict,
                 barcode_split_r.append(barcode_r[start:(start+barcode_len)])
         # for default, only judge if barcode in 5' is right
         if barcode_f not in barcode:
-            statistics['head_barcode_mismatch'] += 1
+            barcode_info['head_barcode_mismatch'] += 1
             SeqIO.write(record, handle_wrong, 'fastq')
             continue
         # here use list.count
         if barcode_split_f.count(barcode_split_f[0]) != len(barcode_split_f):
-            statistics['head_barcode_mode_wrong'] += 1
+            barcode_info['head_barcode_mode_wrong'] += 1
             SeqIO.write(record, handle_wrong, 'fastq')
             continue
         if strict:
             if barcode_f != barcode_r:
-                statistics['head_tail_barcode_unequal'] += 1
+                barcode_info['head_tail_barcode_unequal'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
             if barcode_r not in barcode:
-                statistics['tail_barcode_mismatch'] += 1
+                barcode_info['tail_barcode_mismatch'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
             if barcode_split_r.count(barcode_split_r[0]) != len(
                     barcode_split_r):
-                statistics['tail_barcode_mode_wrong'] += 1
+                barcode_info['tail_barcode_mode_wrong'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
         name = barcode[barcode_f]
@@ -79,19 +79,22 @@ def divide_run(merged, barcode, mode, strict,
             record.seq[skip:(skip+SEARCH_LEN)]))
     handle_wrong.close()
     handle_fasta.close()
-    return statistics, head_file, divided_files
+    with open(os.path.join(output, 'barcode_info.csv'), 'w') as stat_out:
+        for record in barcode_info.items():
+            stat_out.write('{0},{1} \n'.format(*record))
+#     return statistics, head_file, divided_files
 
 
-def blast_and_parse(query_file, db_file, evalue, output):
+# def blast_and_parse(query_file, db_file, evalue, output):
     # build db
-    db_name = os.path.splitext(db_file)[0]
+    db_name = os.path.splitext(primer_file)[0]
     call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
-        db_file, db_name), shell=True)
+        primer_file, db_name), shell=True)
     blast_result_file = os.path.join(output, 'BlastResult.xml')
     cmd = nb(
         num_threads=cpu_count(),
-        query=query_file,
-        db=db_name,
+        query=head_file,
+        db=primer_file,
         # Use blastn-short for primers.
         task='blastn-short',
         max_target_seqs=1,
@@ -116,10 +119,9 @@ def blast_and_parse(query_file, db_file, evalue, output):
             tophit[0][0].query_description)
         hit_info = tophit[0][0].hit.id
         parse_result[query_info] = hit_info
-    return parse_result
 
 
-def divide_gene(blast_result, divided_files, output):
+# def divide_gene(blast_result, divided_files, output):
     gene_folder = os.path.join(output, 'GENE')
     barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
     os.mkdir(gene_folder)
@@ -146,4 +148,11 @@ def divide_gene(blast_result, divided_files, output):
                     handle_gene = open(os.path.join(
                         gene_folder, '{}.fastq'.format(gene_name)), 'a')
                     SeqIO.write(record, handle_gene, 'fastq')
-    return sample_count, gene_count
+#    return sample_count, gene_count
+    # write statistics
+    with open(os.path.join(output, 'sample_info.csv'), 'w') as handle:
+        for record in sample_count.items():
+            handle.write('{0},{1} \n'.format(*record))
+    with open(os.path.join(output, 'gene_info.csv'), 'w') as handle:
+        for record in gene_count .items():
+            handle.write('{0},{1} \n'.format(*record))
