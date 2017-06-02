@@ -8,8 +8,8 @@ from multiprocessing import cpu_count
 from subprocess import call
 
 
-def divide_barcode(merged, barcode, mode, strict,
-                   adapter_length, output):
+def divide_run(merged, barcode, mode, strict,
+               adapter_length, evalue, output):
     # prepare input
     barcode_folder = os.path.join(output, 'BARCODE')
     os.mkdir(barcode_folder)

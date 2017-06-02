@@ -2,8 +2,11 @@
 
 import argparse
 import os
-from timeit import default_timer as timer
+from multiprocessing import Pool
 from subprocess import call
+from timeit import default_timer as timer
+
+from core import divide_run
 
 
 def flash(files, output):
@@ -97,19 +100,11 @@ def main():
     merged = flash(arg.input, arg.output)
     barcode = get_barcode_info(arg.barcode_file)
     primer_file = get_primer_info(arg.primer_file, arg.output)
-    barcode_info, head_file, divided_files = divide_barcode(merged,
-                                                            barcode,
-                                                            arg.mode,
-                                                            arg.strict,
-                                                            arg.adapter,
-                                                            arg.output)
-    parse_result = blast_and_parse(head_file, primer_file,
-                                   arg.evalue, arg.output)
+    divide_run(merged, barcode, primer_file, arg.mode, arg.strict,
+               arg.adapter, arg.evalue, arg.output)
+
     sample_info, gene_info = divide_gene(parse_result,
                                          divided_files, arg.output)
-    with open(os.path.join(arg.output, 'barcode_info.csv'), 'w') as handle:
-        for record in barcode_info.items():
-            handle.write('{0},{1} \n'.format(*record))
     with open(os.path.join(arg.output, 'sample_info.csv'), 'w') as handle:
         for record in sample_info.items():
             handle.write('{0},{1} \n'.format(*record))
