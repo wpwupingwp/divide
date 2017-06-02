@@ -84,9 +84,9 @@ def divide_barcode(merged, barcode, mode, strict,
     # analyze input files
     divided_files = set()
     fastq_raw = SeqIO.parse(merged, 'fastq')
-    handle_wrong = open(os.path.join(output, 'barcode_wrong.fastq'), 'w')
+    handle_wrong = open(os.path.join(output, 'barcode_wrong.fastq'), 'a')
     head_file = os.path.join(output, 'head.fasta')
-    handle_fasta = open(head_file, 'w')
+    handle_fasta = open(head_file, 'a')
     for record in fastq_raw:
         statistics['total'] += 1
         # ignore wrong barcode
