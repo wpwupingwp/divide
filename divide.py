@@ -61,7 +61,7 @@ def get_primer_info(primer_file, output):
 def check_vsearch():
     vsearch = 'vsearch'
     check = call('{} --version'.format(vsearch, shell=True))
-    if check.returncode == 0:
+    if check == 0:
         return vsearch
     else:
         return None

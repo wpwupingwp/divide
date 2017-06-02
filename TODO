@@ -1,6 +1,10 @@
 1. test divide_barcode
-2. rewrite divide_gene to
+#2. rewrite divide_gene to
     a. generate files in different folder
     b. use simple primer.csv
-3. write README
+#3. write README
 4. check input
+#5. integrate flash
+6. intergrate vsearch
+7. speed up BLAST
+8. cut head of sequence
