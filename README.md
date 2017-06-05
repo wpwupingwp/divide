@@ -63,6 +63,12 @@ or use any text editor you prefer.
 **Make sure you don't miss the first line.**
 
 
+## Parallel
+
+From v3.0, divide.py support parallel to speed up BLAST because of extremly
+slow blastn-short. In default, it use all your CPU cores minus one to run, or
+you could use "-c" to change number of cores you want to use.
+
 # join_fastq.py
 
 When you use flash or other software to combine sequence of two directions,
