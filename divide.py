@@ -2,24 +2,23 @@
 
 import argparse
 import os
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from subprocess import call
 from timeit import default_timer as timer
-
 from core import divide_run
 
 
 def flash(files, output):
     # check flash
     if len(files) == 1:
-        return files[0]
+        return False, files[0]
     elif len(files) == 2:
         for flash in ['flash2', 'flash']:
             check = call('{} --version'.format(flash), shell=True)
             if check == 0:
                 call('{0} {1} {2} -d {3} -o out'.format(
                     flash, files[0], files[1], output), shell=True)
-                return os.path.join(output, 'out.extendedFrags.fastq')
+                return True, os.path.join(output, 'out.extendedFrags.fastq')
         raise Exception('FLASH not found!')
     else:
         raise Exception('Only support single or pair-end input!')
@@ -66,6 +65,22 @@ def check_vsearch():
         return None
 
 
+def run(paramter):
+    (data, barcode, db_name, mode, strict, adapter, evalue, output) = paramter
+    result = divide_run(data, barcode, db_name, mode, strict, adapter,
+                        evalue, output)
+    return result
+
+
+def merge_dict(a, b):
+    # merge b into a
+    for key in b.keys():
+        if key in a:
+            a[key] += b[key]
+        else:
+            a[key] = b[key]
+    return a
+
 
 def main():
     """
@@ -80,6 +95,8 @@ def main():
                      help='length of adapter, typical 14 for AFLP')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
+    arg.add_argument('-c', dest='core_number', type=int,
+                     default=(cpu_count()-1), help='CPU cores to use')
     arg.add_argument('-p', dest='primer_file',
                      help='csv file containing primer info')
     arg.add_argument('-e', dest='evalue', default=1e-5, type=float,
@@ -92,16 +109,72 @@ def main():
     arg.add_argument('input', nargs='+', help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='Result', help='output path')
     arg = arg.parse_args()
+    # create folders
+    barcode_folder = os.path.join(arg.output, 'BARCODE')
+    gene_folder = os.path.join(arg.output, 'GENE')
+    barcode_gene_folder = os.path.join(arg.output, 'BARCODE-GENE')
     try:
         os.mkdir(arg.output)
+        os.mkdir(barcode_folder)
+        os.mkdir(gene_folder)
+        os.mkdir(barcode_gene_folder)
     except:
         raise Exception('output exists, please use another name')
 
-    merged = flash(arg.input, arg.output)
     barcode = get_barcode_info(arg.barcode_file)
     primer_file = get_primer_info(arg.primer_file, arg.output)
-    divide_run(merged, barcode, primer_file, arg.mode, arg.strict,
-               arg.adapter, arg.evalue, arg.output)
+    db_name = os.path.splitext(primer_file)[0]
+    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
+        primer_file, db_name), shell=True)
+    # split
+    is_merge, merged = flash(arg.input, arg.output)
+    if is_merge:
+        files = [(i, '{}.{}'.format(merged, i)) for i in range(
+            arg.core_number)]
+    else:
+        files = [(i, '{}.{}'.format(os.path.join(
+            arg.output, merged), i)) for i in range(arg.core_number)]
+    # reduce time cost by '.'
+    cores = arg.core_number
+    with open(merged, 'r') as raw:
+        block = list()
+        for n, line in enumerate(raw):
+            block.append(line)
+            # write to file per 40 lines
+            if len(block) == 40:
+                # split to different files
+                index = ((n+1) // 40) % cores
+                with open(files[index][1], 'a') as handle:
+                    handle.write(''.join(block))
+                    # clean block for next
+                    block = []
+    # parallel
+
+    merged = [(i, barcode, db_name, arg.mode, arg.strict, arg.adapter,
+               arg.evalue, arg.output) for i in files]
+    pool = Pool(arg.core_number)
+    results = pool.map(run, merged)
+    pool.close()
+    pool.join()
+    # merge result
+    Barcode_info, Sample_info, Gene_info = results[0]
+    for result in results[1:]:
+        Barcode_info = merge_dict(Barcode_info, result[0])
+        Sample_info = merge_dict(Sample_info, result[1])
+        Gene_info = merge_dict(Gene_info, result[2])
+    # write statistics
+    barcode_info = os.path.join(arg.output, 'barcode_info.csv')
+    with open(barcode_info, 'w') as handle:
+        for record in Barcode_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    sample_info = os.path.join(arg.output, 'sample_info.csv')
+    with open(sample_info, 'w') as handle:
+        for record in Sample_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    gene_info = os.path.join(arg.output, 'gene_info.csv')
+    with open(gene_info, 'w') as handle:
+        for record in Gene_info .items():
+            handle.write('{0},{1} \n'.format(*record))
 
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(

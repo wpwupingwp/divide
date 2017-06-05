@@ -3,20 +3,23 @@
 import os
 from Bio import SearchIO, SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
-from collections import defaultdict
-from multiprocessing import cpu_count
-from subprocess import call
 
 
-def divide_run(merged, barcode, primer_file, mode, strict,
+def divide_run(data, barcode, db_name, mode, strict,
                adapter_length, evalue, output):
+    thread_id, merged = data
     # prepare input
     barcode_folder = os.path.join(output, 'BARCODE')
-    os.mkdir(barcode_folder)
 
     # edit it according to primer length
     SEARCH_LEN = 25
-    barcode_info = defaultdict(lambda: 0)
+    barcode_info = {'total': 0,
+                    'barcode_total': 0,
+                    'head_barcode_mismatch': 0,
+                    'head_barcode_mode_wrong': 0,
+                    'head_tail_barcode_unequal': 0,
+                    'tail_barcode_mismatch': 0,
+                    'tail_barcode_mode_wrong': 0}
     #  parse_mode(mode):
     barcode_len, repeat = [int(i) for i in mode.split('*')]
     barcode_full_len = barcode_len * repeat
@@ -79,20 +82,14 @@ def divide_run(merged, barcode, primer_file, mode, strict,
             record.seq[skip:(skip+SEARCH_LEN)]))
     handle_wrong.close()
     handle_fasta.close()
-    with open(os.path.join(output, 'barcode_info.csv'), 'w') as stat_out:
-        for record in barcode_info.items():
-            stat_out.write('{0},{1} \n'.format(*record))
 #     return statistics, head_file, divided_files
 
 
 # def blast_and_parse(query_file, db_file, evalue, output):
     # build db
-    db_name = os.path.splitext(primer_file)[0]
-    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
-        primer_file, db_name), shell=True)
-    blast_result_file = os.path.join(output, 'BlastResult.xml')
+    blast_result_file = os.path.join(output,
+                                     'BlastResult.xml.{}'.format(thread_id))
     cmd = nb(
-        num_threads=cpu_count(),
         query=head_file,
         db=db_name,
         # Use blastn-short for primers.
@@ -124,19 +121,20 @@ def divide_run(merged, barcode, primer_file, mode, strict,
 # def divide_gene(parse_result, divided_files, output):
     gene_folder = os.path.join(output, 'GENE')
     barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
-    os.mkdir(gene_folder)
-    os.mkdir(barcode_gene_folder)
     # split and count
-    sample_count = {i: 0 for i in divided_files}
-    gene_count = defaultdict(lambda: 0)
+    sample_info = {i: 0 for i in divided_files}
+    gene_info = dict()
     for fastq_file in divided_files:
         records = SeqIO.parse(fastq_file, 'fastq')
         for record in records:
             gene = record.description
             if gene in parse_result:
-                sample_count[fastq_file] += 1
+                sample_info[fastq_file] += 1
                 gene_name = parse_result[gene]
-                gene_count[gene_name] += 1
+                if gene_name not in gene_info:
+                    gene_info[gene_name] = 1
+                else:
+                    gene_info[gene_name] += 1
                 barcode = os.path.splitext(fastq_file)[0]
                 barcode = os.path.basename(barcode)
                 record.id = '|'.join([gene_name, barcode, ''])
@@ -148,11 +146,6 @@ def divide_run(merged, barcode, primer_file, mode, strict,
                     handle_gene = open(os.path.join(
                         gene_folder, '{}.fastq'.format(gene_name)), 'a')
                     SeqIO.write(record, handle_gene, 'fastq')
-#    return sample_count, gene_count
-    # write statistics
-    with open(os.path.join(output, 'sample_info.csv'), 'w') as handle:
-        for record in sample_count.items():
-            handle.write('{0},{1} \n'.format(*record))
-    with open(os.path.join(output, 'gene_info.csv'), 'w') as handle:
-        for record in gene_count .items():
-            handle.write('{0},{1} \n'.format(*record))
+#    return sample_info, gene_info
+
+    return barcode_info, sample_info, gene_info
