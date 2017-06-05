@@ -65,9 +65,11 @@ def check_vsearch():
         return None
 
 
-def run(data):
-    divide_run(data, barcode, db_name, arg.mode,
-               arg.strict, arg.adapter, arg.evalue, arg.output)
+def run(paramter):
+    (data, barcode, db_name, mode, strict, adapter, evalue, output) = paramter
+    result = divide_run(data, barcode, db_name, mode, strict, adapter,
+                        evalue, output)
+    return result
 
 
 def main():
@@ -78,7 +80,6 @@ def main():
     [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
     """
     start_time = timer()
-    global arg
     arg = argparse.ArgumentParser()
     arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
                      help='length of adapter, typical 14 for AFLP')
@@ -108,9 +109,7 @@ def main():
     except:
         raise Exception('output exists, please use another name')
 
-    global barcode
     barcode = get_barcode_info(arg.barcode_file)
-    global db_name
     primer_file = get_primer_info(arg.primer_file, arg.output)
     db_name = os.path.splitext(primer_file)[0]
     call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
@@ -119,9 +118,11 @@ def main():
     merged = flash(arg.input, arg.output)
     # parallel
 
-    merged = [[i, merged] for i in range(cpu_count()-1)]
+    merged = [([i, merged], barcode, db_name, arg.mode, arg.strict,
+               arg.adapter, arg.evalue, arg.output) for i in range(
+                   cpu_count()-1)]
     pool = Pool(cpu_count()-1)
-    result = pool.map(run, merged)
+    results = pool.map(run, merged)
     pool.close()
     pool.join()
 
