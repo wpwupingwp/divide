@@ -126,7 +126,7 @@ def main():
     pool.close()
     pool.join()
 
-    print(result)
+    print(results)
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))
