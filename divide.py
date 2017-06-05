@@ -11,7 +11,7 @@ from core import divide_run
 def flash(files, output):
     # check flash
     if len(files) == 1:
-        return files
+        return files[0]
     elif len(files) == 2:
         for flash in ['flash2', 'flash']:
             check = call('{} --version'.format(flash), shell=True)
@@ -116,7 +116,7 @@ def main():
     merged = flash(arg.input, arg.output)
     # parallel
 
-    merged = merged * (cpu_count()-1)
+    merged = [[i, merged] for i in range(cpu_count()-1)]
     pool = Pool(cpu_count()-1)
     result = pool.map(run, merged)
     pool.close()

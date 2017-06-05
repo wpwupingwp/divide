@@ -8,9 +8,11 @@ from multiprocessing import cpu_count
 from subprocess import call
 
 
-def divide_run(merged, barcode, primer_file, mode, strict,
+def divide_run(data, barcode, primer_file, mode, strict,
                adapter_length, evalue, output):
     # prepare input
+    thread_id, merged = data
+    print(thread_id, merged)
     barcode_folder = os.path.join(output, 'BARCODE')
 
     # edit it according to primer length
@@ -90,9 +92,10 @@ def divide_run(merged, barcode, primer_file, mode, strict,
     db_name = os.path.splitext(primer_file)[0]
     call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
         primer_file, db_name), shell=True)
-    blast_result_file = os.path.join(output, 'BlastResult.xml')
+    blast_result_file = os.path.join(output,
+                                     'BlastResult.xml.{}'.format(thread_id))
     cmd = nb(
-        num_threads=cpu_count(),
+        # num_threads=cpu_count(),
         query=head_file,
         db=db_name,
         # Use blastn-short for primers.
