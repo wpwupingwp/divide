@@ -3,7 +3,6 @@
 import os
 from Bio import SearchIO, SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
-from collections import defaultdict
 from multiprocessing import cpu_count
 
 
@@ -16,7 +15,13 @@ def divide_run(data, barcode, db_name, mode, strict,
 
     # edit it according to primer length
     SEARCH_LEN = 25
-    barcode_info = defaultdict(lambda: 0)
+    barcode_info = {'total': 0,
+                    'barcode_total': 0,
+                    'head_barcode_mismatch': 0,
+                    'head_barcode_mode_wrong': 0,
+                    'head_tail_barcode_unequal': 0,
+                    'tail_barcode_mismatch': 0,
+                    'tail_barcode_mode_wrong': 0}
     #  parse_mode(mode):
     barcode_len, repeat = [int(i) for i in mode.split('*')]
     barcode_full_len = barcode_len * repeat
@@ -125,7 +130,7 @@ def divide_run(data, barcode, db_name, mode, strict,
     barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
     # split and count
     sample_count = {i: 0 for i in divided_files}
-    gene_count = defaultdict(lambda: 0)
+    gene_count = dict()
     for fastq_file in divided_files:
         records = SeqIO.parse(fastq_file, 'fastq')
         for record in records:
@@ -133,7 +138,10 @@ def divide_run(data, barcode, db_name, mode, strict,
             if gene in parse_result:
                 sample_count[fastq_file] += 1
                 gene_name = parse_result[gene]
-                gene_count[gene_name] += 1
+                if gene_name not in gene_count:
+                    gene_count[gene_name] = 1
+                else:
+                    gene_count[gene_name] += 1
                 barcode = os.path.splitext(fastq_file)[0]
                 barcode = os.path.basename(barcode)
                 record.id = '|'.join([gene_name, barcode, ''])
