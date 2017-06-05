@@ -132,16 +132,15 @@ def main():
     # reduce time cost by '.'
     cores = arg.core_number
     with open(merged, 'r') as raw:
-        block = []
+        block = list()
         for n, line in enumerate(raw):
             block.append(line)
             # write to file per 40 lines
             if len(block) == 40:
                 # split to different files
-                index = int(((n+1) / 40) % cores)
-                print(index)
+                index = ((n+1) // 40) % cores
                 with open(files[index][1], 'a') as handle:
-                    handle.write(line)
+                    handle.write(''.join(block))
                     # clean block for next
                     block = []
     # parallel
