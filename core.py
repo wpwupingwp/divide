@@ -5,10 +5,9 @@ from Bio import SearchIO, SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
 from collections import defaultdict
 from multiprocessing import cpu_count
-from subprocess import call
 
 
-def divide_run(data, barcode, primer_file, mode, strict,
+def divide_run(data, barcode, db_name, mode, strict,
                adapter_length, evalue, output):
     # prepare input
     thread_id, merged = data
@@ -89,9 +88,6 @@ def divide_run(data, barcode, primer_file, mode, strict,
 
 # def blast_and_parse(query_file, db_file, evalue, output):
     # build db
-    db_name = os.path.splitext(primer_file)[0]
-    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
-        primer_file, db_name), shell=True)
     blast_result_file = os.path.join(output,
                                      'BlastResult.xml.{}'.format(thread_id))
     cmd = nb(

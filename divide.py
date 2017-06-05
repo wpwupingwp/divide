@@ -66,7 +66,7 @@ def check_vsearch():
 
 
 def run(data):
-    divide_run(data, barcode, primer_file, arg.mode,
+    divide_run(data, barcode, db_name, arg.mode,
                arg.strict, arg.adapter, arg.evalue, arg.output)
 
 
@@ -110,8 +110,11 @@ def main():
 
     global barcode
     barcode = get_barcode_info(arg.barcode_file)
-    global primer_file
+    global db_name
     primer_file = get_primer_info(arg.primer_file, arg.output)
+    db_name = os.path.splitext(primer_file)[0]
+    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
+        primer_file, db_name), shell=True)
     # split
     merged = flash(arg.input, arg.output)
     # parallel
