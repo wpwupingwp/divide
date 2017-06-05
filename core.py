@@ -12,10 +12,6 @@ def divide_run(merged, barcode, primer_file, mode, strict,
                adapter_length, evalue, output):
     # prepare input
     barcode_folder = os.path.join(output, 'BARCODE')
-    try:
-        os.mkdir(barcode_folder)
-    except:
-        pass
 
     # edit it according to primer length
     SEARCH_LEN = 25
@@ -128,14 +124,6 @@ def divide_run(merged, barcode, primer_file, mode, strict,
 # def divide_gene(parse_result, divided_files, output):
     gene_folder = os.path.join(output, 'GENE')
     barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
-    try:
-        os.mkdir(gene_folder)
-    except:
-        pass
-    try:
-        os.mkdir(barcode_gene_folder)
-    except:
-        pass
     # split and count
     sample_count = {i: 0 for i in divided_files}
     gene_count = defaultdict(lambda: 0)

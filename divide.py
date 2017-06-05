@@ -96,8 +96,15 @@ def main():
     arg.add_argument('input', nargs='+', help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='Result', help='output path')
     arg = arg.parse_args()
+    # create folders
+    barcode_folder = os.path.join(arg.output, 'BARCODE')
+    gene_folder = os.path.join(arg.output, 'GENE')
+    barcode_gene_folder = os.path.join(arg.output, 'BARCODE-GENE')
     try:
         os.mkdir(arg.output)
+        os.mkdir(barcode_folder)
+        os.mkdir(gene_folder)
+        os.mkdir(barcode_gene_folder)
     except:
         raise Exception('output exists, please use another name')
 
