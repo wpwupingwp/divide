@@ -3,7 +3,6 @@
 import os
 from Bio import SearchIO, SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline as nb
-from multiprocessing import cpu_count
 
 
 def divide_run(data, barcode, db_name, mode, strict,
