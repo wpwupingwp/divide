@@ -83,10 +83,6 @@ def divide_run(data, barcode, db_name, mode, strict,
             record.seq[skip:(skip+SEARCH_LEN)]))
     handle_wrong.close()
     handle_fasta.close()
-    # barcode_info_file = os.path.join(output, 'barcode_info.csv')
-    # with open(barcode_info_file, 'w') as stat_out:
-    #     for record in barcode_info.items():
-    #         stat_out.write('{0},{1} \n'.format(*record))
 #     return statistics, head_file, divided_files
 
 
@@ -95,7 +91,6 @@ def divide_run(data, barcode, db_name, mode, strict,
     blast_result_file = os.path.join(output,
                                      'BlastResult.xml.{}'.format(thread_id))
     cmd = nb(
-        # num_threads=cpu_count(),
         query=head_file,
         db=db_name,
         # Use blastn-short for primers.
