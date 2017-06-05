@@ -84,10 +84,10 @@ def divide_run(data, barcode, db_name, mode, strict,
             record.seq[skip:(skip+SEARCH_LEN)]))
     handle_wrong.close()
     handle_fasta.close()
-    barcode_info_file = os.path.join(output, 'barcode_info.csv')
-    with open(barcode_info_file, 'w') as stat_out:
-        for record in barcode_info.items():
-            stat_out.write('{0},{1} \n'.format(*record))
+    # barcode_info_file = os.path.join(output, 'barcode_info.csv')
+    # with open(barcode_info_file, 'w') as stat_out:
+    #     for record in barcode_info.items():
+    #         stat_out.write('{0},{1} \n'.format(*record))
 #     return statistics, head_file, divided_files
 
 
@@ -129,19 +129,19 @@ def divide_run(data, barcode, db_name, mode, strict,
     gene_folder = os.path.join(output, 'GENE')
     barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
     # split and count
-    sample_count = {i: 0 for i in divided_files}
-    gene_count = dict()
+    sample_info = {i: 0 for i in divided_files}
+    gene_info = dict()
     for fastq_file in divided_files:
         records = SeqIO.parse(fastq_file, 'fastq')
         for record in records:
             gene = record.description
             if gene in parse_result:
-                sample_count[fastq_file] += 1
+                sample_info[fastq_file] += 1
                 gene_name = parse_result[gene]
-                if gene_name not in gene_count:
-                    gene_count[gene_name] = 1
+                if gene_name not in gene_info:
+                    gene_info[gene_name] = 1
                 else:
-                    gene_count[gene_name] += 1
+                    gene_info[gene_name] += 1
                 barcode = os.path.splitext(fastq_file)[0]
                 barcode = os.path.basename(barcode)
                 record.id = '|'.join([gene_name, barcode, ''])
@@ -153,15 +153,15 @@ def divide_run(data, barcode, db_name, mode, strict,
                     handle_gene = open(os.path.join(
                         gene_folder, '{}.fastq'.format(gene_name)), 'a')
                     SeqIO.write(record, handle_gene, 'fastq')
-#    return sample_count, gene_count
+#    return sample_info, gene_info
     # write statistics
-    sample_info = os.path.join(output, 'sample_info.csv')
-    with open(sample_info, 'w') as handle:
-        for record in sample_count.items():
-            handle.write('{0},{1} \n'.format(*record))
-    gene_info = os.path.join(output, 'gene_info.csv')
-    with open(gene_info, 'w') as handle:
-        for record in gene_count .items():
-            handle.write('{0},{1} \n'.format(*record))
+    # sample_info = os.path.join(output, 'sample_info.csv')
+    # with open(sample_info, 'w') as handle:
+    #     for record in sample_info.items():
+    #         handle.write('{0},{1} \n'.format(*record))
+    # gene_info = os.path.join(output, 'gene_info.csv')
+    # with open(gene_info, 'w') as handle:
+    #     for record in gene_info .items():
+    #         handle.write('{0},{1} \n'.format(*record))
 
     return barcode_info, sample_info, gene_info

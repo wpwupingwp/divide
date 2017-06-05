@@ -72,6 +72,16 @@ def run(paramter):
     return result
 
 
+def merge_dict(a, b):
+    # merge b into a
+    for key in b.keys():
+        if key in a:
+            a[key] += b[key]
+        else:
+            a[key] = b[key]
+    return a
+
+
 def main():
     """
     Sequence likes this:
@@ -125,8 +135,13 @@ def main():
     results = pool.map(run, merged)
     pool.close()
     pool.join()
+    # merge result
+    Barcode_info, Sample_info, Gene_info = results[0]
+    for result in results[1:]:
+        Barcode_info = merge_dict(Barcode_info, result[0])
+        Sample_info = merge_dict(Sample_info, result[1])
+        Gene_info = merge_dict(Gene_info, result[2])
 
-    print(results)
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))
