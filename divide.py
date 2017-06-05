@@ -11,14 +11,14 @@ from core import divide_run
 def flash(files, output):
     # check flash
     if len(files) == 1:
-        return files[0]
+        return False, files[0]
     elif len(files) == 2:
         for flash in ['flash2', 'flash']:
             check = call('{} --version'.format(flash), shell=True)
             if check == 0:
                 call('{0} {1} {2} -d {3} -o out'.format(
                     flash, files[0], files[1], output), shell=True)
-                return os.path.join(output, 'out.extendedFrags.fastq')
+                return True, os.path.join(output, 'out.extendedFrags.fastq')
         raise Exception('FLASH not found!')
     else:
         raise Exception('Only support single or pair-end input!')
@@ -127,8 +127,13 @@ def main():
     call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
         primer_file, db_name), shell=True)
     # split
-    merged = flash(arg.input, arg.output)
-    files = [(i, '{}.{}'.format(merged, i)) for i in range(arg.core_number)]
+    is_merge, merged = flash(arg.input, arg.output)
+    if is_merge:
+        files = [(i, '{}.{}'.format(merged, i)) for i in range(
+            arg.core_number)]
+    else:
+        files = [(i, '{}.{}'.format(os.path.join(
+            arg.output, merged), i)) for i in range(arg.core_number)]
     # reduce time cost by '.'
     cores = arg.core_number
     with open(merged, 'r') as raw:
