@@ -2,9 +2,10 @@
 #2. rewrite divide_gene to
     a. generate files in different folder
     b. use simple primer.csv
-#3. write README
-4. check input
-#5. integrate flash
-6. intergrate vsearch
-7. speed up BLAST
-8. cut head of sequence
+3. write README
+4. test flash
+5. test vsearch
+6. GUI
+7. speedup
+8. do not use global
+9. speed up split input
