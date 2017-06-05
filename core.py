@@ -7,9 +7,8 @@ from Bio.Blast.Applications import NcbiblastnCommandline as nb
 
 def divide_run(data, barcode, db_name, mode, strict,
                adapter_length, evalue, output):
-    # prepare input
     thread_id, merged = data
-    print(thread_id, merged)
+    # prepare input
     barcode_folder = os.path.join(output, 'BARCODE')
 
     # edit it according to primer length

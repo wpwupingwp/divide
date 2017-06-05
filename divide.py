@@ -95,6 +95,8 @@ def main():
                      help='length of adapter, typical 14 for AFLP')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
+    arg.add_argument('-c', dest='core_number', type=int,
+                     default=(cpu_count()-1), help='CPU cores to use')
     arg.add_argument('-p', dest='primer_file',
                      help='csv file containing primer info')
     arg.add_argument('-e', dest='evalue', default=1e-5, type=float,
@@ -126,12 +128,27 @@ def main():
         primer_file, db_name), shell=True)
     # split
     merged = flash(arg.input, arg.output)
+    files = [(i, '{}.{}'.format(merged, i)) for i in range(arg.core_number)]
+    # reduce time cost by '.'
+    cores = arg.core_number
+    with open(merged, 'r') as raw:
+        block = []
+        for n, line in enumerate(raw):
+            block.append(line)
+            # write to file per 40 lines
+            if len(block) == 40:
+                # split to different files
+                index = int(((n+1) / 40) % cores)
+                print(index)
+                with open(files[index][1], 'a') as handle:
+                    handle.write(line)
+                    # clean block for next
+                    block = []
     # parallel
 
-    merged = [([i, merged], barcode, db_name, arg.mode, arg.strict,
-               arg.adapter, arg.evalue, arg.output) for i in range(
-                   cpu_count()-1)]
-    pool = Pool(cpu_count()-1)
+    merged = [(i, barcode, db_name, arg.mode, arg.strict, arg.adapter,
+               arg.evalue, arg.output) for i in files]
+    pool = Pool(arg.core_number)
     results = pool.map(run, merged)
     pool.close()
     pool.join()
