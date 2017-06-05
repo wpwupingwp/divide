@@ -154,14 +154,5 @@ def divide_run(data, barcode, db_name, mode, strict,
                         gene_folder, '{}.fastq'.format(gene_name)), 'a')
                     SeqIO.write(record, handle_gene, 'fastq')
 #    return sample_info, gene_info
-    # write statistics
-    # sample_info = os.path.join(output, 'sample_info.csv')
-    # with open(sample_info, 'w') as handle:
-    #     for record in sample_info.items():
-    #         handle.write('{0},{1} \n'.format(*record))
-    # gene_info = os.path.join(output, 'gene_info.csv')
-    # with open(gene_info, 'w') as handle:
-    #     for record in gene_info .items():
-    #         handle.write('{0},{1} \n'.format(*record))
 
     return barcode_info, sample_info, gene_info

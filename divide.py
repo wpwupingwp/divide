@@ -141,6 +141,19 @@ def main():
         Barcode_info = merge_dict(Barcode_info, result[0])
         Sample_info = merge_dict(Sample_info, result[1])
         Gene_info = merge_dict(Gene_info, result[2])
+    # write statistics
+    barcode_info = os.path.join(arg.output, 'barcode_info.csv')
+    with open(barcode_info, 'w') as handle:
+        for record in Barcode_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    sample_info = os.path.join(arg.output, 'sample_info.csv')
+    with open(sample_info, 'w') as handle:
+        for record in Sample_info.items():
+            handle.write('{0},{1} \n'.format(*record))
+    gene_info = os.path.join(arg.output, 'gene_info.csv')
+    with open(gene_info, 'w') as handle:
+        for record in Gene_info .items():
+            handle.write('{0},{1} \n'.format(*record))
 
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
