@@ -140,8 +140,8 @@ def main():
         handle = open(files[0], 'a')
         for n, line in enumerate(raw):
             # write 4k every time
-            if n % 4096 == 0:
-                handle = open(files[(n//4096) % cores], 'a')
+            if n % 4000 == 0:
+                handle = open(files[(n//4000) % cores], 'a')
             handle.write(line)
     files = glob(os.path.join(arg.output, merged)+'.*')
     files = [(n, i) for n, i in enumerate(files)]
