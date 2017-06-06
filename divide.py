@@ -6,6 +6,7 @@ from multiprocessing import Pool, cpu_count
 from subprocess import call
 from timeit import default_timer as timer
 from core import divide_run
+from glob import glob
 
 
 def flash(files, output):
@@ -109,6 +110,8 @@ def main():
     arg.add_argument('input', nargs='+', help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='Result', help='output path')
     arg = arg.parse_args()
+    # reduce time cost by '.'
+    cores = arg.core_number
     # create folders
     barcode_folder = os.path.join(arg.output, 'BARCODE')
     gene_folder = os.path.join(arg.output, 'GENE')
@@ -129,12 +132,10 @@ def main():
     # split
     is_merge, merged = flash(arg.input, arg.output)
     if is_merge:
-        files = ['{}.{}'.format(merged) for i in range(arg.core_number)]
+        files = ['{}.{}'.format(merged, i) for i in range(cores)]
     else:
-        files = ['{}.{}'.format(os.path.join(arg.output, merged)
-                                ) for i in range(arg.core_number)]
-    # reduce time cost by '.'
-    cores = arg.core_number
+        files = ['{}.{}'.format(os.path.join(
+            arg.output, merged), i) for i in range(cores)]
     with open(merged, 'r') as raw:
         handle = open(files[0], 'a')
         for n, line in enumerate(raw):
@@ -142,6 +143,9 @@ def main():
             if n % 4096 == 0:
                 handle = open(files[(n//4096) % cores], 'a')
             handle.write(line)
+    files = glob(os.path.join(arg.output, merged)+'.*')
+    files = [(n, i) for n, i in enumerate(files)]
+    print(files)
     # parallel
     merged = [(i, barcode, db_name, arg.mode, arg.strict, arg.adapter,
                arg.evalue, arg.output) for i in files]
