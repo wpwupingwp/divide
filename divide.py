@@ -129,27 +129,20 @@ def main():
     # split
     is_merge, merged = flash(arg.input, arg.output)
     if is_merge:
-        files = [(i, '{}.{}'.format(merged, i)) for i in range(
-            arg.core_number)]
+        files = ['{}.{}'.format(merged) for i in range(arg.core_number)]
     else:
-        files = [(i, '{}.{}'.format(os.path.join(
-            arg.output, merged), i)) for i in range(arg.core_number)]
+        files = ['{}.{}'.format(os.path.join(arg.output, merged)
+                                ) for i in range(arg.core_number)]
     # reduce time cost by '.'
     cores = arg.core_number
     with open(merged, 'r') as raw:
-        block = list()
+        handle = open(files[0], 'a')
         for n, line in enumerate(raw):
-            block.append(line)
-            # write to file per 40 lines
-            if len(block) == 40:
-                # split to different files
-                index = ((n+1) // 40) % cores
-                with open(files[index][1], 'a') as handle:
-                    handle.write(''.join(block))
-                    # clean block for next
-                    block = []
+            # write 4k every time
+            if n % 4096 == 0:
+                handle = open(files[(n//4096) % cores], 'a')
+            handle.write(line)
     # parallel
-
     merged = [(i, barcode, db_name, arg.mode, arg.strict, arg.adapter,
                arg.evalue, arg.output) for i in files]
     pool = Pool(arg.core_number)
