@@ -26,11 +26,10 @@ def divide_run(data, barcode, db_name, mode, strict,
     skip = barcode_full_len + adapter_length
     # analyze input files
     divided_files = set()
-    fastq_raw = SeqIO.parse(merged, 'fastq')
     handle_wrong = open(os.path.join(output, 'barcode_wrong.fastq'), 'a')
     head_file = os.path.join(output, 'head.fasta')
     handle_fasta = open(head_file, 'a')
-    for record in fastq_raw:
+    for record in SeqIO.parse(merged, 'fastq'):
         barcode_info['total'] += 1
         # ignore wrong barcode
         barcode_f = str(record.seq[:barcode_full_len])

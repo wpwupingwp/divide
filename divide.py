@@ -145,11 +145,10 @@ def main():
             handle.write(line)
     files = glob(os.path.join(arg.output, merged)+'.*')
     files = [(n, i) for n, i in enumerate(files)]
-    print(files)
     # parallel
     merged = [(i, barcode, db_name, arg.mode, arg.strict, arg.adapter,
                arg.evalue, arg.output) for i in files]
-    pool = Pool(arg.core_number)
+    pool = Pool(cores)
     results = pool.map(run, merged)
     pool.close()
     pool.join()
