@@ -83,14 +83,7 @@ def merge_dict(a, b):
     return a
 
 
-def main():
-    """
-    Sequence likes this:
-    [Barcode][Adapter][Primer][Sequence]
-    Or:
-    [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
-    """
-    start_time = timer()
+def parse_args():
     arg = argparse.ArgumentParser()
     arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
                      help='length of adapter, typical 14 for AFLP')
@@ -109,7 +102,18 @@ def main():
                         barcode with length 5 repeated 2 times''')
     arg.add_argument('input', nargs='+', help='input file, fastq format')
     arg.add_argument('-o', dest='output', default='Result', help='output path')
-    arg = arg.parse_args()
+    return arg.parse_args()
+
+
+def main():
+    """
+    Sequence likes this:
+    [Barcode][Adapter][Primer][Sequence]
+    Or:
+    [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
+    """
+    start_time = timer()
+    arg = parse_args()
     # reduce time cost by '.'
     cores = arg.core_number
     # create folders
