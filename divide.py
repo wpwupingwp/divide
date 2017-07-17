@@ -147,6 +147,7 @@ def main():
             if n % 4000 == 0:
                 handle = open(files[(n//4000) % cores], 'a')
             handle.write(line)
+            handle.close()
     files = glob(os.path.join(arg.output, merged)+'.*')
     files = [(n, i) for n, i in enumerate(files)]
     # parallel
