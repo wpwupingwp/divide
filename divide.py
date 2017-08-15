@@ -2,24 +2,23 @@
 
 import argparse
 import os
-from multiprocessing import Pool, cpu_count
-from subprocess import call
+from multiprocessing import Pool
+from subprocess import run
 from timeit import default_timer as timer
 from core import divide_run
-from glob import glob
 
 
 def flash(files, output):
     # check flash
     if len(files) == 1:
-        return False, files[0]
+        return files[0]
     elif len(files) == 2:
         for flash in ['flash2', 'flash']:
-            check = call('{} --version'.format(flash), shell=True)
+            check = run('{} --version'.format(flash), shell=True)
             if check == 0:
-                call('{0} {1} {2} -d {3} -o out'.format(
+                run('{0} {1} {2} -d {3} -o out'.format(
                     flash, files[0], files[1], output), shell=True)
-                return True, os.path.join(output, 'out.extendedFrags.fastq')
+                return os.path.join(output, 'out.extendedFrags.fastq')
         raise Exception('FLASH not found!')
     else:
         raise Exception('Only support single or pair-end input!')
@@ -59,14 +58,14 @@ def get_primer_info(primer_file, output):
 
 def check_vsearch():
     vsearch = 'vsearch'
-    check = call('{} --version'.format(vsearch, shell=True))
+    check = run('{} --version'.format(vsearch, shell=True))
     if check == 0:
         return vsearch
     else:
         return None
 
 
-def run(paramter):
+def process(paramter):
     (data, barcode, db_name, mode, strict, adapter, evalue, output) = paramter
     result = divide_run(data, barcode, db_name, mode, strict, adapter,
                         evalue, output)
@@ -86,11 +85,11 @@ def merge_dict(a, b):
 def parse_args():
     arg = argparse.ArgumentParser()
     arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
-                     help='length of adapter, typical 14 for AFLP')
+                     help='length of adapter,default value is 14')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
-    arg.add_argument('-c', dest='core_number', type=int,
-                     default=(cpu_count()-1), help='CPU cores to use')
+    arg.add_argument('-c', dest='threads', type=int, default=1,
+                     help='CPU cores to use')
     arg.add_argument('-p', dest='primer_file',
                      help='csv file containing primer info')
     arg.add_argument('-e', dest='evalue', default=1e-5, type=float,
@@ -115,7 +114,6 @@ def main():
     start_time = timer()
     arg = parse_args()
     # reduce time cost by '.'
-    cores = arg.core_number
     # create folders
     barcode_folder = os.path.join(arg.output, 'BARCODE')
     gene_folder = os.path.join(arg.output, 'GENE')
@@ -131,30 +129,42 @@ def main():
     barcode = get_barcode_info(arg.barcode_file)
     primer_file = get_primer_info(arg.primer_file, arg.output)
     db_name = os.path.splitext(primer_file)[0]
-    call('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
+    run('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
         primer_file, db_name), shell=True)
-    # split
-    is_merge, merged = flash(arg.input, arg.output)
-    if is_merge:
-        files = ['{}.{}'.format(merged, i) for i in range(cores)]
+
+    # merge
+    merged = flash(arg.input, arg.output)
+
+    def split(fastq, output, threads):
+        split_file = set()
+        with open(fastq, 'r') as raw:
+            filename = os.path.join(output, '{}.{}'.format(fastq, '1'))
+            split_file.add(filename)
+            handle = open(filename, 'a')
+            for n, line in enumerate(raw):
+                # write 4k every time
+                if n % 4000 == 0:
+                    filename = os.path.join(
+                        output, '{}.{}'.format(fastq, ((n//4000) % threads)))
+                    try:
+                        handle = open(filename, 'a')
+                        split_file.add(filename)
+                    except OSError:
+                        pass
+                handle.write(line)
+        return list(split_file)
+
+    if arg.threads == 1:
+        files = [merged, ]
     else:
-        files = ['{}.{}'.format(os.path.join(
-            arg.output, merged), i) for i in range(cores)]
-    with open(merged, 'r') as raw:
-        handle = open(files[0], 'a')
-        for n, line in enumerate(raw):
-            # write 4k every time
-            if n % 4000 == 0:
-                handle = open(files[(n//4000) % cores], 'a')
-            handle.write(line)
-            handle.close()
-    files = glob(os.path.join(arg.output, merged)+'.*')
+        files = split(merged, arg.output, arg.threads)
+
     files = [(n, i) for n, i in enumerate(files)]
     # parallel
     merged = [(i, barcode, db_name, arg.mode, arg.strict, arg.adapter,
                arg.evalue, arg.output) for i in files]
-    pool = Pool(cores)
-    results = pool.map(run, merged)
+    pool = Pool(arg.threads)
+    results = pool.map(process, merged)
     pool.close()
     pool.join()
     # merge result
