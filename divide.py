@@ -19,7 +19,7 @@ def flash(files, output):
                 run('{0} {1} {2} -d {3} -o out'.format(
                     flash, files[0], files[1], output), shell=True)
                 return os.path.join(output, 'out.extendedFrags.fastq')
-        raise Exception('FLASH not found!')
+        raise Exception('FLASH not found and you give pair-end input!')
     else:
         raise Exception('Only support single or pair-end input!')
 
@@ -47,6 +47,9 @@ def get_primer_info(primer_file, output):
     primer_file = os.path.join(output, 'primer.fasta')
     with open(primer_file, 'w') as output:
         for line in primer:
+            # gene_id,forward,reverse
+            # OR
+            # gene_id,sequence
             try:
                 gene_name, forward, reverse = line
                 output.write('>{0}\n{1}\n'.format(gene_name, reverse))
@@ -57,6 +60,7 @@ def get_primer_info(primer_file, output):
 
 
 def check_vsearch():
+    # to be continued
     vsearch = 'vsearch'
     check = run('{} --version'.format(vsearch, shell=True))
     if check == 0:
