@@ -2,6 +2,8 @@
 
 Divide NGS data by barcode and primer.
 
+![flowchart](divide.png)
+
 ## Sequence structure
 
 It can handle merged pair-end sequence like this:
