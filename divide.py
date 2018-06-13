@@ -38,27 +38,15 @@ def get_barcode_info(barcode_file):
 
 
 def get_primer_info(primer_file, output):
-    primer = list()
+    primer_dict = dict()
     with open(primer_file, 'r') as input_file:
         for line in input_file:
             if line.startswith(('Gene', 'gene')):
                 continue
-            line = line.split(sep=',')
-            primer.append([i.strip() for i in line])
-    # join primer pairs
-    primer_file = os.path.join(output, 'primer.fasta')
-    with open(primer_file, 'w') as output:
-        for line in primer:
-            # gene_id,forward,reverse
-            # OR
-            # gene_id,sequence
-            try:
-                gene_name, forward, reverse = line
-                output.write('>{0}\n{1}\n'.format(gene_name, reverse))
-            except ValueError:
-                gene_name, forward = line
-            output.write('>{0}\n{1}\n'.format(gene_name, forward))
-    return primer_file
+            line = line.strip().split(sep=',')
+            for i in line[1:]:
+                primer_dict[i] = line[0]
+    return primer_dict
 
 
 def check_vsearch():
