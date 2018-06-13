@@ -2,7 +2,7 @@
 
 import argparse
 import os
-from multiprocessing import Pool
+import regex
 from subprocess import run
 from timeit import default_timer as timer
 from core import divide_run
@@ -128,38 +128,6 @@ def main():
     # merge
     merged = flash(arg.input, arg.output)
 
-    def split(fastq, output, threads):
-        split_file = set()
-        with open(fastq, 'r') as raw:
-            filename = os.path.join(output, '{}.{}'.format(fastq, '1'))
-            split_file.add(filename)
-            handle = open(filename, 'a')
-            for n, line in enumerate(raw):
-                # write 4k every time
-                if n % 4000 == 0:
-                    filename = os.path.join(
-                        output, '{}.{}'.format(fastq, ((n//4000) % threads)))
-                    try:
-                        handle = open(filename, 'a')
-                        split_file.add(filename)
-                    except OSError:
-                        pass
-                handle.write(line)
-        return list(split_file)
-
-    if arg.threads == 1:
-        files = [merged, ]
-    else:
-        files = split(merged, arg.output, arg.threads)
-
-    files = [(n, i) for n, i in enumerate(files)]
-    # parallel
-    merged = [(i, barcode, db_name, arg.mode, arg.strict, arg.adapter,
-               arg.evalue, arg.output) for i in files]
-    pool = Pool(arg.threads)
-    results = pool.map(process, merged)
-    pool.close()
-    pool.join()
     # merge result
     Barcode_info, Sample_info, Gene_info = results[0]
     for result in results[1:]:
