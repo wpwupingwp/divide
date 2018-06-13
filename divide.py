@@ -15,7 +15,6 @@ def divide_run(merged, barcode_dict, primer_dict, arg):
     barcode_folder = os.path.join(arg.output, 'BARCODE')
 
     # edit it according to primer length
-    SEARCH_LEN = 25
     barcode_info = {'total': 0,
                     'barcode_total': 0,
                     'head_barcode_mismatch': 0,
@@ -26,11 +25,9 @@ def divide_run(merged, barcode_dict, primer_dict, arg):
     #  parse_mode(mode):
     barcode_len, repeat = [int(i) for i in arg.mode.split('*')]
     barcode_full_len = barcode_len * repeat
-    skip = barcode_full_len + arg.adapter
     # analyze input files
     divided_files = set()
     handle_wrong = open(os.path.join(arg.output, 'barcode_wrong.fastq'), 'a')
-    head_file = os.path.join(arg.output, 'head.fasta')
     for record in SeqIO.parse(merged, 'fastq'):
         barcode_info['total'] += 1
         # ignore wrong barcode
@@ -77,10 +74,8 @@ def divide_run(merged, barcode_dict, primer_dict, arg):
         output_file = os.path.join(barcode_folder, name+'.fastq')
         divided_files.add(output_file)
         with open(output_file, 'a') as handle:
+            record.id = '{}-{}'.format(name, record.id)
             SeqIO.write(record, handle, 'fastq')
-        handle_fasta.write('>{0}\n{1}\n'.format(
-            record.description,
-            record.seq[skip:(skip+SEARCH_LEN)]))
     handle_wrong.close()
 #     return statistics, head_file, divided_files
 
