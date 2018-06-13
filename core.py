@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 
 import os
-from Bio import SearchIO, SeqIO
-from Bio.Blast.Applications import NcbiblastnCommandline as nb
+from Bio import SeqIO
 
 
 def divide_run(data, barcode, db_name, mode, strict,

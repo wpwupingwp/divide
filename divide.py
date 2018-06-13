@@ -8,8 +8,10 @@ from timeit import default_timer as timer
 from core import divide_run
 
 
-def flash(files, output):
+def flash(arg):
     # check flash
+    files = arg.input
+    output = arg.output
     if len(files) == 1:
         return files[0]
     elif len(files) == 2:
@@ -53,7 +55,7 @@ def get_primer_info(primer_file, output):
             try:
                 gene_name, forward, reverse = line
                 output.write('>{0}\n{1}\n'.format(gene_name, reverse))
-            except:
+            except ValueError:
                 gene_name, forward = line
             output.write('>{0}\n{1}\n'.format(gene_name, forward))
     return primer_file
@@ -87,17 +89,19 @@ def merge_dict(a, b):
 
 
 def parse_args():
-    arg = argparse.ArgumentParser()
+    arg = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
-                     help='length of adapter,default value is 14')
+                     help='length of adapter')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
     arg.add_argument('-c', dest='threads', type=int, default=1,
                      help='CPU cores to use')
     arg.add_argument('-p', dest='primer_file',
                      help='csv file containing primer info')
-    arg.add_argument('-e', dest='evalue', default=1e-5, type=float,
-                     help='evalue for BLAST')
+    arg.add_argument('-j', '--join_by_n', action='store_true',
+                     help=('if set, join sequences FLASH failed to merge by '
+                           '"N"'*10))
     arg.add_argument('-s', '--strict', action='store_true',
                      help="if set, consider barcode on the 5' and 3'")
     arg.add_argument('-m', dest='mode', default='5*2',
@@ -127,14 +131,11 @@ def main():
         os.mkdir(barcode_folder)
         os.mkdir(gene_folder)
         os.mkdir(barcode_gene_folder)
-    except:
+    except OSError:
         raise Exception('output exists, please use another name')
 
     barcode = get_barcode_info(arg.barcode_file)
     primer_file = get_primer_info(arg.primer_file, arg.output)
-    db_name = os.path.splitext(primer_file)[0]
-    run('makeblastdb -in {0} -out {1} -dbtype nucl'.format(
-        primer_file, db_name), shell=True)
 
     # merge
     merged = flash(arg.input, arg.output)
