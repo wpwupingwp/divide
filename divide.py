@@ -2,16 +2,13 @@
 
 import argparse
 import os
-import regex
+import regex as re
 from subprocess import run
 from timeit import default_timer as timer
 from Bio import SeqIO
 
 
-#def divide_run(data, barcode, db_name, mode, strict,
-#               adapter_length, evalue, output):
-    # prepare input
-def divide_run(merged, barcode_dict, primer_dict, arg):
+def divide_by_barcode(merged, barcode_dict, arg):
     barcode_folder = os.path.join(arg.output, 'BARCODE')
 
     # edit it according to primer length
@@ -77,73 +74,43 @@ def divide_run(merged, barcode_dict, primer_dict, arg):
             record.id = '{}-{}'.format(name, record.id)
             SeqIO.write(record, handle, 'fastq')
     handle_wrong.close()
-#     return statistics, head_file, divided_files
+    return barcode_info, divided_files, barcode_full_len
 
 
-# def blast_and_parse(query_file, db_file, evalue, output):
-    # build db
-    blast_result_file = os.path.join(output,
-                                     'BlastResult.xml.{}'.format(thread_id))
-    cmd = nb(
-        query=head_file,
-        db=db_name,
-        # Use blastn-short for primers.
-        task='blastn-short',
-        max_target_seqs=1,
-        max_hsps=1,
-        evalue=evalue,
-        # xml output
-        outfmt=5,
-        out=blast_result_file
-    )
-    stdout, stderr = cmd()
-    # parse
-    blast_result = SearchIO.parse(blast_result_file, 'blast-xml')
-    parse_result = dict()
-    for record in blast_result:
-        # skip empty blast result item
-        if len(record) == 0:
-            continue
-        else:
-            tophit = record[0]
-        query_info = '{0} {1}'.format(
-            tophit[0][0].query_id,
-            tophit[0][0].query_description)
-        hit_info = tophit[0][0].hit.id
-        parse_result[query_info] = hit_info
+def divide_by_primer(divided_files, primer_info, arg, barcode_full_len):
+    gene_folder = os.path.join(arg.output, 'GENE')
+    barcode_gene_folder = os.path.join(arg.output, 'BARCODE-GENE')
+    handle_wrong = open(os.path.join(arg.output, 'primer_wrong.fastq'), 'a')
+    start = barcode_full_len + arg.adapter
+    end = max([len(i) for i in primer_info.keys()]) + start
+    divided_files = set()
 
-
-# def divide_gene(parse_result, divided_files, output):
-    gene_folder = os.path.join(output, 'GENE')
-    barcode_gene_folder = os.path.join(output, 'BARCODE-GENE')
-    # split and count
-    sample_info = {i: 0 for i in divided_files}
-    gene_info = dict()
+    not_found = 0
     for fastq_file in divided_files:
         records = SeqIO.parse(fastq_file, 'fastq')
         for record in records:
-            gene = record.description
-            if gene in parse_result:
-                sample_info[fastq_file] += 1
-                gene_name = parse_result[gene]
-                if gene_name not in gene_info:
-                    gene_info[gene_name] = 1
-                else:
-                    gene_info[gene_name] += 1
-                barcode = os.path.splitext(fastq_file)[0]
-                barcode = os.path.basename(barcode)
-                record.id = '|'.join([gene_name, barcode, ''])
-                handle_name = os.path.join(
-                    barcode_gene_folder, '{0}-{1}.fastq'.format(
-                        barcode, gene_name))
-                with open(handle_name, 'a') as handle:
-                    SeqIO.write(record, handle, 'fastq')
-                    handle_gene = open(os.path.join(
-                        gene_folder, '{}.fastq'.format(gene_name)), 'a')
-                    SeqIO.write(record, handle_gene, 'fastq')
-#    return sample_info, gene_info
-
-    return barcode_info, sample_info, gene_info
+            found = False
+            string = str(record[start:end].seq)
+            for pattern in primer_info:
+                if re.search(pattern, string, re.BESTMATCH) is not None:
+                    gene = primer_info[pattern]
+                    found = True
+                    break
+            if not found:
+                SeqIO.write(record, handle_wrong, 'fastq')
+                not_found += 1
+            barcode = record.id.split('-')[0]
+            record.id = '{}-{}'.format(gene, record.id)
+            handle_name = os.path.join(
+                barcode_gene_folder, '{0}-{1}.fastq'.format(
+                    barcode, gene))
+            divided_files.add(handle_name)
+            with open(handle_name, 'a') as handle:
+                SeqIO.write(record, handle, 'fastq')
+                handle_gene = open(os.path.join(gene_folder,
+                                                '{}.fastq'.format(gene)), 'a')
+                SeqIO.write(record, handle_gene, 'fastq')
+    return divided_files, not_found
 
 
 def flash(arg):
@@ -164,9 +131,9 @@ def flash(arg):
         raise Exception('Only support single or pair-end input!')
 
 
-def get_barcode_info(barcode_file):
+def get_barcode_info(arg):
     barcode_info = dict()
-    with open(barcode_file, 'r') as input_file:
+    with open(arg.barcode_file, 'r') as input_file:
         for line in input_file:
             if line.startswith(('barcode', 'Barcode')):
                 continue
@@ -175,15 +142,17 @@ def get_barcode_info(barcode_file):
     return barcode_info
 
 
-def get_primer_info(primer_file, output):
+def get_primer_info(arg):
     primer_dict = dict()
-    with open(primer_file, 'r') as input_file:
+    with open(arg.primer_file, 'r') as input_file:
         for line in input_file:
             if line.startswith(('Gene', 'gene')):
                 continue
             line = line.strip().split(sep=',')
             for i in line[1:]:
-                primer_dict[i] = line[0]
+                pattern = re.compile(r'({}){{e<={}}}'.format(
+                    i, arg.max_mismatch))
+                primer_dict[pattern] = line[0]
     return primer_dict
 
 
@@ -260,33 +229,23 @@ def main():
     except OSError:
         raise Exception('output exists, please use another name')
 
-    barcode_dict = get_barcode_info(arg.barcode_file)
-    primer_dict = get_primer_info(arg.primer_file, arg.output)
+    barcode_dict = get_barcode_info(arg)
+    primer_dict = get_primer_info(arg)
 
     # merge
     merged = flash(arg.input, arg.output)
     # divide barcode
-    divide_run(merged, barcode_dict, primer_dict, arg)
+    barcode_result, divided_files, barcode_full_len = divide_by_barcode(
+        merged, barcode_dict, arg)
+    result_files, primer_not_found = divide_by_primer(
+        divided_files, primer_dict, arg, barcode_full_len)
 
-    # merge result
-    Barcode_info, Sample_info, Gene_info = results[0]
-    for result in results[1:]:
-        Barcode_info = merge_dict(Barcode_info, result[0])
-        Sample_info = merge_dict(Sample_info, result[1])
-        Gene_info = merge_dict(Gene_info, result[2])
     # write statistics
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
     with open(barcode_info, 'w') as handle:
-        for record in Barcode_info.items():
+        for record in barcode_result.items():
             handle.write('{0},{1} \n'.format(*record))
-    sample_info = os.path.join(arg.output, 'sample_info.csv')
-    with open(sample_info, 'w') as handle:
-        for record in Sample_info.items():
-            handle.write('{0},{1} \n'.format(*record))
-    gene_info = os.path.join(arg.output, 'gene_info.csv')
-    with open(gene_info, 'w') as handle:
-        for record in Gene_info .items():
-            handle.write('{0},{1} \n'.format(*record))
+            handle.write('Primer not found, {}\n'.format(primer_not_found))
 
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
