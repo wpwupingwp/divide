@@ -166,44 +166,30 @@ def check_vsearch():
         return None
 
 
-def process(paramter):
-    (data, barcode, db_name, mode, strict, adapter, evalue, output) = paramter
-    result = divide_run(data, barcode, db_name, mode, strict, adapter,
-                        evalue, output)
-    return result
-
-
-def merge_dict(a, b):
-    # merge b into a
-    for key in b.keys():
-        if key in a:
-            a[key] += b[key]
-        else:
-            a[key] = b[key]
-    return a
-
-
 def parse_args():
     arg = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    arg.add_argument('input', nargs='+', help='input file, fastq format')
     arg.add_argument('-a', '--adapter', dest='adapter', default=14, type=int,
                      help='length of adapter')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
     arg.add_argument('-c', dest='threads', type=int, default=1,
                      help='CPU cores to use')
-    arg.add_argument('-p', dest='primer_file',
-                     help='csv file containing primer info')
     arg.add_argument('-j', '--join_by_n', action='store_true',
                      help=('if set, join sequences FLASH failed to merge by '
                            '"N"'*10))
-    arg.add_argument('-s', '--strict', action='store_true',
-                     help="if set, consider barcode on the 5' and 3'")
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    arg.add_argument('input', nargs='+', help='input file, fastq format')
+    arg.add_argument('--max_mismatch', type=int, default=4,
+                     help='maximum mismatch in primer')
+    arg.add_argument('-p', dest='primer_file',
+                     help='csv file containing primer info')
+    arg.add_argument('-s', '--strict', action='store_true',
+                     help="if set, consider barcode on the 5' and 3'")
     arg.add_argument('-o', dest='output', default='Result', help='output path')
+    arg.print_help()
     return arg.parse_args()
 
 
