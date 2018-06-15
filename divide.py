@@ -92,7 +92,7 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
             found = False
             string = str(record[start:end].seq)
             for pattern in primer_info:
-                if re.search(pattern, string, re.BESTMATCH) is not None:
+                if re.search(pattern, string) is not None:
                     gene = primer_info[pattern]
                     found = True
                     break
@@ -154,7 +154,7 @@ def get_primer_info(arg):
             for i in line[1:]:
                 seq.append(i)
                 pattern = re.compile(r'({}){{e<={}}}'.format(
-                    i.upper(), arg.max_mismatch))
+                    i.upper(), arg.max_mismatch), re.BESTMATCH)
                 primer_dict[pattern] = line[0]
     # max primer len
     primer_len = max([len(i) for i in seq])
