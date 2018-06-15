@@ -12,6 +12,20 @@ To install Biopython and regex, run as administrator:
 
 > pip install biopython regex
 
+## Changelog
+
+### v4.0
+Use regex instead of BLAST. Faster and easier.
+
+### v3.3
+Parallel version, use BLAST.
+
+### v2.1
+Single core version. Use BLAST.
+
+### v1.0
+Deprecated.
+
 ## Sequence structure
 
 It can handle merged pair-end sequence like this:
