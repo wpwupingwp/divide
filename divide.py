@@ -67,7 +67,7 @@ def divide_by_barcode(merged, barcode_dict, arg):
                 barcode_info['tail_barcode_mode_wrong'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
-        name = barcode_info[barcode_f]
+        name = barcode_dict[barcode_f]
         output_file = os.path.join(barcode_folder, name+'.fastq')
         divided_files.add(output_file)
         with open(output_file, 'a') as handle:
@@ -77,12 +77,12 @@ def divide_by_barcode(merged, barcode_dict, arg):
     return barcode_info, divided_files, barcode_full_len
 
 
-def divide_by_primer(divided_files, primer_info, arg, barcode_full_len):
+def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
     gene_folder = os.path.join(arg.output, 'GENE')
     barcode_gene_folder = os.path.join(arg.output, 'BARCODE-GENE')
     handle_wrong = open(os.path.join(arg.output, 'primer_wrong.fastq'), 'a')
-    start = barcode_full_len + arg.adapter
-    end = max([len(i) for i in primer_info.keys()]) + start
+    start = barcode_len + arg.adapter
+    end = start + primer_len
     divided_files = set()
 
     not_found = 0
@@ -139,21 +139,26 @@ def get_barcode_info(arg):
                 continue
             line = line.strip().split(sep=',')
             barcode_info[line[0].upper()] = line[1]
-    return barcode_info
+    barcode_len = max([len(i) for i in barcode_info])
+    return barcode_info, barcode_len
 
 
 def get_primer_info(arg):
     primer_dict = dict()
+    seq = list()
     with open(arg.primer_file, 'r') as input_file:
         for line in input_file:
             if line.startswith(('Gene', 'gene')):
                 continue
             line = line.strip().split(sep=',')
             for i in line[1:]:
+                seq.append(i)
                 pattern = re.compile(r'({}){{e<={}}}'.format(
                     i, arg.max_mismatch))
                 primer_dict[pattern] = line[0]
-    return primer_dict
+    # max primer len
+    primer_len = max([len(i) for i in seq])
+    return primer_dict, primer_len
 
 
 def check_vsearch():
@@ -174,8 +179,6 @@ def parse_args():
                      help='length of adapter')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
-    arg.add_argument('-c', dest='threads', type=int, default=1,
-                     help='CPU cores to use')
     arg.add_argument('-j', '--join_by_n', action='store_true',
                      help=('if set, join sequences FLASH failed to merge by '
                            '"N"'*10))
@@ -188,7 +191,7 @@ def parse_args():
                      help='csv file containing primer info')
     arg.add_argument('-s', '--strict', action='store_true',
                      help="if set, consider barcode on the 5' and 3'")
-    arg.add_argument('-o', dest='output', default='Result', help='output path')
+    arg.add_argument('-o', dest='output', help='output path')
     arg.print_help()
     return arg.parse_args()
 
@@ -202,8 +205,9 @@ def main():
     """
     start_time = timer()
     arg = parse_args()
-    # reduce time cost by '.'
     # create folders
+    if arg.output is None:
+        arg.output = arg.input[0].replace('.fastq', '')
     barcode_folder = os.path.join(arg.output, 'BARCODE')
     gene_folder = os.path.join(arg.output, 'GENE')
     barcode_gene_folder = os.path.join(arg.output, 'BARCODE-GENE')
@@ -215,16 +219,16 @@ def main():
     except OSError:
         raise Exception('output exists, please use another name')
 
-    barcode_dict = get_barcode_info(arg)
-    primer_dict = get_primer_info(arg)
+    barcode_dict, barcode_len = get_barcode_info(arg)
+    primer_dict, primer_len = get_primer_info(arg)
 
     # merge
-    merged = flash(arg.input, arg.output)
+    merged = flash(arg)
     # divide barcode
     barcode_result, divided_files, barcode_full_len = divide_by_barcode(
         merged, barcode_dict, arg)
     result_files, primer_not_found = divide_by_primer(
-        divided_files, primer_dict, arg, barcode_full_len)
+        divided_files, primer_dict, arg, barcode_len, primer_len)
 
     # write statistics
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
