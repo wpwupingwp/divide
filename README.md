@@ -2,7 +2,15 @@
 
 Divide NGS data by barcode and primer.
 
-![flowchart](divide.png)
+## Prerequisite
+
+* Python 3.5 or above
+* Biopython
+* regex
+
+To install Biopython and regex, run as administrator:
+
+> pip install biopython regex
 
 ## Sequence structure
 
