@@ -13,7 +13,6 @@ def divide_by_barcode(merged, barcode_dict, arg):
 
     # edit it according to primer length
     barcode_info = {'total': 0,
-                    'barcode_total': 0,
                     'head_barcode_mismatch': 0,
                     'head_barcode_mode_wrong': 0,
                     'head_tail_barcode_unequal': 0,
@@ -84,6 +83,7 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
     start = barcode_len + arg.adapter
     end = start + primer_len
     result_files = set()
+    primer_result = {i: 0 for i in primer_info.values()}
 
     not_found = 0
     for fastq_file in divided_files:
@@ -100,6 +100,7 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
                 SeqIO.write(record, handle_wrong, 'fastq')
                 not_found += 1
             barcode = record.id.split('-')[0]
+            primer_result[gene] += 1
             record.id = '{}-{}'.format(gene, record.id)
             handle_name = os.path.join(
                 barcode_gene_folder, '{0}-{1}.fastq'.format(
@@ -110,7 +111,7 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
                 handle_gene = open(os.path.join(gene_folder,
                                                 '{}.fastq'.format(gene)), 'a')
                 SeqIO.write(record, handle_gene, 'fastq')
-    return result_files, not_found
+    return primer_result, result_files, not_found
 
 
 def flash(arg):
@@ -224,7 +225,7 @@ def main():
     # divide barcode
     barcode_result, divided_files, barcode_full_len = divide_by_barcode(
         merged, barcode_dict, arg)
-    result_files, primer_not_found = divide_by_primer(
+    primer_result, result_files, primer_not_found = divide_by_primer(
         divided_files, primer_dict, arg, barcode_len, primer_len)
 
     # write statistics
@@ -232,7 +233,11 @@ def main():
     with open(barcode_info, 'w') as handle:
         for record in barcode_result.items():
             handle.write('{0},{1} \n'.format(*record))
-        handle.write('Primer not found, {}\n'.format(primer_not_found))
+    primer_info = os.path.join(arg.output, 'primer_info.csv')
+    with open(primer_info, 'w') as handle:
+        handle.write('Primer not found,{}\n'.format(primer_not_found))
+        for record in primer_result.items():
+            handle.write('{0},{1} \n'.format(*record))
 
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
