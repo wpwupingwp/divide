@@ -83,7 +83,7 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
     handle_wrong = open(os.path.join(arg.output, 'primer_wrong.fastq'), 'a')
     start = barcode_len + arg.adapter
     end = start + primer_len
-    divided_files = set()
+    result_files = set()
 
     not_found = 0
     for fastq_file in divided_files:
@@ -104,13 +104,13 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
             handle_name = os.path.join(
                 barcode_gene_folder, '{0}-{1}.fastq'.format(
                     barcode, gene))
-            divided_files.add(handle_name)
+            result_files.add(handle_name)
             with open(handle_name, 'a') as handle:
                 SeqIO.write(record, handle, 'fastq')
                 handle_gene = open(os.path.join(gene_folder,
                                                 '{}.fastq'.format(gene)), 'a')
                 SeqIO.write(record, handle_gene, 'fastq')
-    return divided_files, not_found
+    return result_files, not_found
 
 
 def flash(arg):
@@ -154,7 +154,7 @@ def get_primer_info(arg):
             for i in line[1:]:
                 seq.append(i)
                 pattern = re.compile(r'({}){{e<={}}}'.format(
-                    i, arg.max_mismatch))
+                    i.upper(), arg.max_mismatch))
                 primer_dict[pattern] = line[0]
     # max primer len
     primer_len = max([len(i) for i in seq])
@@ -181,7 +181,7 @@ def parse_args():
                      help='csv file containing barcode info')
     arg.add_argument('-j', '--join_by_n', action='store_true',
                      help=('if set, join sequences FLASH failed to merge by '
-                           '"N"'*10))
+                           '"NNNNNNNNNN"'))
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
@@ -235,7 +235,7 @@ def main():
     with open(barcode_info, 'w') as handle:
         for record in barcode_result.items():
             handle.write('{0},{1} \n'.format(*record))
-            handle.write('Primer not found, {}\n'.format(primer_not_found))
+        handle.write('Primer not found, {}\n'.format(primer_not_found))
 
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
