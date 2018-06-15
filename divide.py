@@ -179,9 +179,6 @@ def parse_args():
                      help='length of adapter')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
-    arg.add_argument('-j', '--join_by_n', action='store_true',
-                     help=('if set, join sequences FLASH failed to merge by '
-                           '"NNNNNNNNNN"'))
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
