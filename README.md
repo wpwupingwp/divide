@@ -4,6 +4,20 @@ Divide NGS data by barcode and primer.
 
 ![flowchart](divide.png)
 
+## Changelog
+
+### v4.0
+Use regex instead of BLAST. Faster and easier.
+
+### v3.3
+Parallel version, use BLAST.
+
+### v2.1
+Single core version. Use BLAST.
+
+### v1.0
+Deprecated.
+
 ## Sequence structure
 
 It can handle merged pair-end sequence like this:
