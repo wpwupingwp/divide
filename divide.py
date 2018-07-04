@@ -99,6 +99,7 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
             if not found:
                 SeqIO.write(record, handle_wrong, 'fastq')
                 not_found += 1
+                continue
             barcode = record.id.split('-')[0]
             primer_result[gene] += 1
             record.id = '{}-{}'.format(gene, record.id)
@@ -225,8 +226,10 @@ def main():
     # divide barcode
     barcode_result, divided_files, barcode_full_len = divide_by_barcode(
         merged, barcode_dict, arg)
+    print('Dividing barcode finished.')
     primer_result, result_files, primer_not_found = divide_by_primer(
         divided_files, primer_dict, arg, barcode_len, primer_len)
+    print('Dividing genes finished.')
 
     # write statistics
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
