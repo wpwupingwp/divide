@@ -231,7 +231,8 @@ def main():
         os.mkdir(gene_folder)
         os.mkdir(barcode_gene_folder)
     except OSError:
-        raise Exception('output exists, please use another name')
+        print('output exists, please use another name')
+        raise
 
     barcode_dict, barcode_len = get_barcode_info(arg)
     primer_dict, primer_len = get_primer_info(arg)
@@ -250,7 +251,7 @@ def main():
         divided_files, primer_dict, arg, barcode_len, primer_len)
     print('Dividing genes finished.')
 
-    print('Divide done.')
+    print('Divide done.\n')
     # write statistics
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
     with open(barcode_info, 'w') as handle:
@@ -263,14 +264,12 @@ def main():
             handle.write('{0},{1} \n'.format(*record))
 
     # vsearch
-    print('Start vsearch ...')
     if not arg.no_vsearch:
         check = run('vsearch --version', shell=True)
         if check.returncode != 0:
             raise Exception('vsearch not found!')
         for i in result_files:
             vsearch(i, arg)
-    print('vsearch done.')
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))
