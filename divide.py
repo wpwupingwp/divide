@@ -161,14 +161,18 @@ def get_primer_info(arg):
     return primer_dict, primer_len
 
 
-def check_vsearch():
-    # to be continued
-    vsearch = 'vsearch'
+def vsearch(fasta, arg):
     check = run('{} --version'.format(vsearch, shell=True))
-    if check == 0:
-        return vsearch
-    else:
-        return None
+    if check.returncode != 0:
+        raise Exception('vsearch not found!')
+    tmp = fasta + '.all_consensus'
+    output = tmp + '.bigsize'
+    command = ('vsearch --cluster_size {} --id {} --strand {} --sizeout'
+               '--consout {}').format(fasta, arg.id, arg.strand, tmp)
+    run(command, shell=True)
+    command2 = ('vsearch --sortbysize {} --minsize {} --output {}'.format(
+        tmp, arg.minsize, output))
+    run(command2, shell=True)
 
 
 def parse_args():
@@ -179,9 +183,6 @@ def parse_args():
                      help='length of adapter')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
-    arg.add_argument('-j', '--join_by_n', action='store_true',
-                     help=('if set, join sequences FLASH failed to merge by '
-                           '"NNNNNNNNNN"'))
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
@@ -192,6 +193,17 @@ def parse_args():
     arg.add_argument('-s', '--strict', action='store_true',
                      help="if set, consider barcode on the 5' and 3'")
     arg.add_argument('-o', dest='output', help='output path')
+
+    vsearch = arg.add_argument_group('vsearch options')
+    vsearch.add_argument('-no_vsearch', action='store_true',
+                         help='skip vsearch')
+    vsearch.add_argument('-id', type=float, default=0.97,
+                         help='reject if identity lower')
+    vsearch.add_argument('-minsize', type=int, default=5,
+                         help='minimum abundance')
+    vsearch.add_argument('-strand', choice=('plus', 'both'), default='both',
+                         help='strand that cluster used,  plus or both')
+    vsearch.add_argument('-consout', help='output file name')
     arg.print_help()
     return arg.parse_args()
 
