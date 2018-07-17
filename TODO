@@ -1,12 +1,12 @@
-1. test divide_barcode
+#1. test divide_barcode
 #2. rewrite divide_gene to
-    a. generate files in different folder
-    b. use simple primer.csv
+#    a. generate files in different folder
+#    b. use simple primer.csv
 3. write README
-4. test flash
-5. test vsearch
+#4. test flash
+#5. test vsearch
 6. GUI
-7. speedup
-8. do not use global
-9. speed up split input
+#7. speedup
+#8. do not use global
+#9. speed up split input
 10. use safe filename

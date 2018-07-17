@@ -84,23 +84,30 @@ Primer file looks like this:
 
 >    ...
 
+Or:
+
+>    gene,sequence
+
+>    rbcL-f,ATCGATCGATCGA
+
+>    rbcL-r,TACGTACGTACG
+
+
 You can use Microsoft Excel to prepare these two files and save as CSV format,
 or use any text editor you prefer.
 
 **Make sure you don't miss the first line.**
 
-
-## Parallel
-
-From v3.0, divide.py support parallel to speed up BLAST because of extremly
-slow blastn-short. In default, it use all your CPU cores minus one to run, or
-you could use "-c" to change number of cores you want to use.
-
 # join_fastq.py
 
-When you use flash or other software to combine sequence of two directions,
-usually you got a lot of data could not be assemblied directly. This program
-use "NNNNNNNNNN" to connect two direction.
+This program use "NNNNNNNNNN" to connect forward and reverse sequence pairs in
+given two fastq files.
+
+*Warning:*  Please do not use this tool if your sequences do have overlap but
+FLASH failed to merge it. Usually it means those data has extremly poor
+quality. If you merge them, you may get wrong result!
+
+_Only used for sequences do not have overlap that FLASH cannot handle._
 
 ## Usage
 
