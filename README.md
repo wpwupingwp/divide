@@ -2,8 +2,6 @@
 
 Divide NGS data by barcode and primer.
 
-![flowchart](divide.png)
-
 ## Changelog
 
 ### v4.0
