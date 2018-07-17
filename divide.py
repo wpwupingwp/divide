@@ -162,17 +162,17 @@ def get_primer_info(arg):
 
 
 def vsearch(fasta, arg):
-    check = run('{} --version'.format(vsearch, shell=True))
-    if check.returncode != 0:
-        raise Exception('vsearch not found!')
-    tmp = fasta + '.all_consensus'
-    output = tmp + '.bigsize'
-    command = ('vsearch --cluster_size {} --id {} --strand {} --sizeout'
-               '--consout {}').format(fasta, arg.id, arg.strand, tmp)
+    all_cons = fasta + '.all_consensus'
+    output = all_cons + '.bigsize'
+    command = ('vsearch --cluster_size {} --id {} --strand {} --sizeout '
+               '--consout tmp.fasta --quiet').format(fasta, arg.id, arg.strand)
     run(command, shell=True)
-    command2 = ('vsearch --sortbysize {} --minsize {} --output {}'.format(
-        tmp, arg.minsize, output))
+    command2 = ('vsearch --sortbysize tmp.fasta --quiet --output '
+                '{}'.format(all_cons))
     run(command2, shell=True)
+    command3 = ('vsearch --sortbysize {} --minsize {} --output {} '
+                '--quiet'.format(all_cons, arg.minsize, output))
+    run(command3, shell=True)
 
 
 def parse_args():
@@ -201,7 +201,7 @@ def parse_args():
                          help='reject if identity lower')
     vsearch.add_argument('-minsize', type=int, default=5,
                          help='minimum abundance')
-    vsearch.add_argument('-strand', choice=('plus', 'both'), default='both',
+    vsearch.add_argument('-strand', choices=('plus', 'both'), default='both',
                          help='strand that cluster used,  plus or both')
     vsearch.add_argument('-consout', help='output file name')
     arg.print_help()
@@ -213,7 +213,7 @@ def main():
     Sequence likes this:
     [Barcode][Adapter][Primer][Sequence]
     Or:
-    [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
+    [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Adapter][Sequence]
     """
     start_time = timer()
     arg = parse_args()
@@ -235,13 +235,18 @@ def main():
     primer_dict, primer_len = get_primer_info(arg)
 
     # merge
+    print('\nMerging input ...')
     merged = flash(arg)
+    print('Merge done')
     # divide barcode
+    print('Dividing barcode ...')
     barcode_result, divided_files, barcode_full_len = divide_by_barcode(
         merged, barcode_dict, arg)
+    print('Dividing primer ...')
     result_files, primer_not_found = divide_by_primer(
         divided_files, primer_dict, arg, barcode_len, primer_len)
 
+    print('Divide done.')
     # write statistics
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
     with open(barcode_info, 'w') as handle:
@@ -249,6 +254,15 @@ def main():
             handle.write('{0},{1} \n'.format(*record))
         handle.write('Primer not found, {}\n'.format(primer_not_found))
 
+    # vsearch
+    print('Start vsearch ...')
+    if not arg.no_vsearch:
+        check = run('vsearch --version', shell=True)
+        if check.returncode != 0:
+            raise Exception('vsearch not found!')
+        for i in result_files:
+            vsearch(i, arg)
+    print('vsearch done.')
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))
