@@ -163,14 +163,18 @@ def get_primer_info(arg):
     return primer_dict, primer_len
 
 
-def check_vsearch():
-    # to be continued
-    vsearch = 'vsearch'
-    check = run('{} --version'.format(vsearch, shell=True))
-    if check == 0:
-        return vsearch
-    else:
-        return None
+def vsearch(fasta, arg):
+    all_cons = fasta + '.all_consensus'
+    output = all_cons + '.bigsize'
+    command = ('vsearch --cluster_size {} --id {} --strand {} --sizeout '
+               '--consout tmp.fasta --quiet').format(fasta, arg.id, arg.strand)
+    run(command, shell=True)
+    command2 = ('vsearch --sortbysize tmp.fasta --quiet --output '
+                '{}'.format(all_cons))
+    run(command2, shell=True)
+    command3 = ('vsearch --sortbysize {} --minsize {} --output {} '
+                '--quiet'.format(all_cons, arg.minsize, output))
+    run(command3, shell=True)
 
 
 def parse_args():
@@ -191,6 +195,17 @@ def parse_args():
     arg.add_argument('-s', '--strict', action='store_true',
                      help="if set, consider barcode on the 5' and 3'")
     arg.add_argument('-o', dest='output', help='output path')
+
+    vsearch = arg.add_argument_group('vsearch options')
+    vsearch.add_argument('-no_vsearch', action='store_true',
+                         help='skip vsearch')
+    vsearch.add_argument('-id', type=float, default=0.97,
+                         help='reject if identity lower')
+    vsearch.add_argument('-minsize', type=int, default=5,
+                         help='minimum abundance')
+    vsearch.add_argument('-strand', choices=('plus', 'both'), default='both',
+                         help='strand that cluster used,  plus or both')
+    vsearch.add_argument('-consout', help='output file name')
     arg.print_help()
     return arg.parse_args()
 
@@ -200,7 +215,7 @@ def main():
     Sequence likes this:
     [Barcode][Adapter][Primer][Sequence]
     Or:
-    [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Primer][Sequence]
+    [Barcode][Adapter][Primer][Sequence][Barcode][Primer][Adapter][Sequence]
     """
     start_time = timer()
     arg = parse_args()
@@ -222,15 +237,20 @@ def main():
     primer_dict, primer_len = get_primer_info(arg)
 
     # merge
+    print('\nMerging input ...')
     merged = flash(arg)
+    print('Merge done')
     # divide barcode
+    print('Dividing barcode ...')
     barcode_result, divided_files, barcode_full_len = divide_by_barcode(
         merged, barcode_dict, arg)
     print('Dividing barcode finished.')
+    print('Dividing primer ...')
     primer_result, result_files, primer_not_found = divide_by_primer(
         divided_files, primer_dict, arg, barcode_len, primer_len)
     print('Dividing genes finished.')
 
+    print('Divide done.')
     # write statistics
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
     with open(barcode_info, 'w') as handle:
@@ -242,6 +262,15 @@ def main():
         for record in primer_result.items():
             handle.write('{0},{1} \n'.format(*record))
 
+    # vsearch
+    print('Start vsearch ...')
+    if not arg.no_vsearch:
+        check = run('vsearch --version', shell=True)
+        if check.returncode != 0:
+            raise Exception('vsearch not found!')
+        for i in result_files:
+            vsearch(i, arg)
+    print('vsearch done.')
     end_time = timer()
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))

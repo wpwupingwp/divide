@@ -14,6 +14,9 @@ To install Biopython and regex, run as administrator:
 
 ## Changelog
 
+### v4.1
+Integrate vsearch.
+
 ### v4.0
 Use regex instead of BLAST. Faster and easier.
 
