@@ -10,12 +10,10 @@ from Bio import SeqIO
 
 def divide_by_barcode(merged, barcode_dict, arg):
     barcode_folder = os.path.join(arg.output, 'BARCODE')
-
-    # edit it according to primer length
     barcode_info = {'total': 0,
                     'head_barcode_mismatch': 0,
                     'head_barcode_mode_wrong': 0,
-                    'head_tail_barcode_unequal': 0,
+                    'head_tail_barcode_conflict': 0,
                     'tail_barcode_mismatch': 0,
                     'tail_barcode_mode_wrong': 0}
     #  parse_mode(mode):
@@ -30,6 +28,7 @@ def divide_by_barcode(merged, barcode_dict, arg):
         barcode_f = str(record.seq[:barcode_full_len])
         barcode_r = record.seq[-barcode_full_len:]
         # reverse complement for sequence end
+        # or not????
         barcode_r = barcode_r.reverse_complement()
         barcode_r = str(barcode_r)
         barcode_split_f = list()
@@ -42,30 +41,31 @@ def divide_by_barcode(merged, barcode_dict, arg):
                 start = 0 + barcode_len * index
                 barcode_split_f.append(barcode_f[start:(start+barcode_len)])
                 barcode_split_r.append(barcode_r[start:(start+barcode_len)])
-        # for default, only judge if barcode in 5' is right
-        if barcode_f not in barcode_dict:
-            barcode_info['head_barcode_mismatch'] += 1
-            SeqIO.write(record, handle_wrong, 'fastq')
-            continue
         # here use list.count
         if barcode_split_f.count(barcode_split_f[0]) != len(barcode_split_f):
             barcode_info['head_barcode_mode_wrong'] += 1
             SeqIO.write(record, handle_wrong, 'fastq')
             continue
+        # for default, only judge if barcode in 5' is right
+        if barcode_f not in barcode_dict:
+            barcode_info['head_barcode_mismatch'] += 1
+            SeqIO.write(record, handle_wrong, 'fastq')
+            continue
         if arg.strict:
-            if barcode_f != barcode_r:
-                barcode_info['head_tail_barcode_unequal'] += 1
+            if barcode_split_r.count(barcode_split_r[0]) != len(
+                    barcode_split_r):
+                barcode_info['tail_barcode_mode_wrong'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
             if barcode_r not in barcode_dict:
                 barcode_info['tail_barcode_mismatch'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
-            if barcode_split_r.count(barcode_split_r[0]) != len(
-                    barcode_split_r):
-                barcode_info['tail_barcode_mode_wrong'] += 1
+            if barcode_dict[barcode_f] != barcode_dict[barcode_r]:
+                barcode_info['head_tail_barcode_conflict'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
+        # use forward barcode to classify samples
         name = barcode_dict[barcode_f]
         output_file = os.path.join(barcode_folder, name+'.fastq')
         divided_files.add(output_file)
@@ -143,10 +143,12 @@ def get_barcode_info(arg):
     barcode_info = dict()
     with open(arg.barcode_file, 'r') as input_file:
         for line in input_file:
-            if line.startswith(('barcode', 'Barcode')):
+            if line.startswith(('sample', 'Sample')):
                 continue
             line = line.strip().split(sep=',')
-            barcode_info[line[0].upper()] = line[1]
+            for i in line[1:]:
+                barcode_info[i.upper()] = line[0]
+    # not necessary, but consistant with primer
     barcode_len = max([len(i) for i in barcode_info])
     return barcode_info, barcode_len
 
