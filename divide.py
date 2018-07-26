@@ -108,10 +108,16 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
                     barcode, gene))
             result_files.add(handle_name)
             with open(handle_name, 'a') as handle:
-                SeqIO.write(record, handle, 'fastq')
-                handle_gene = open(os.path.join(gene_folder,
-                                                '{}.fastq'.format(gene)), 'a')
-                SeqIO.write(record, handle_gene, 'fastq')
+                handle_gene = open(os.path.join(
+                    gene_folder, '{}.fastq'.format(gene)), 'a')
+                if arg.cut:
+                    SeqIO.write(record[barcode_len:-barcode_len],
+                                handle_gene, 'fastq')
+                    SeqIO.write(record[barcode_len:-barcode_len],
+                                handle, 'fastq')
+                else:
+                    SeqIO.write(record, handle, 'fastq')
+                    SeqIO.write(record, handle_gene, 'fastq')
     return primer_result, result_files, not_found
 
 
@@ -185,6 +191,8 @@ def parse_args():
                      help='length of adapter')
     arg.add_argument('-b', dest='barcode_file',
                      help='csv file containing barcode info')
+    arg.add_argument('-c', '--cut', action='store_true',
+                     help="cut barcode in 5' and 3'")
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
