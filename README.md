@@ -52,6 +52,9 @@ set adapter length to zero by "--adapter 0". The default value is 14.
 Use "-m" to set barcode mode, like "8\*1", means barcode with length 5 repeats
 only 1 times. The default is "5\*2", i.e., 5-base barcode repeats twice.
 
+Note that the forward and reverse barcode may be different sequence, but they
+*SHOULD FOLLOW THE SAME MODE!*
+
 ## Strict option
 
 Use "-s" or "--strict" to use strict version. If set, the program will check
@@ -62,11 +65,21 @@ correct. If not, it will only check barcode in head (5') of sequence.
 
 Barcode file looks like this:
 
->    barcode,sample
+>   sample,barcode-f,barcode-r
 
->    ATACG,BOP00001
+>   S0001,ATACG,ATACG
 
->    ...
+>   S0002,ATATA,TATAC
+
+>   S0003,ATACG
+
+>   ...
+
+The _barcode-f_ means barcode in 5' direction and _barcode-r_ means barcode in
+3' direction. All sequences should be *forward*.
+
+If forward and reverse barcode are same, you can omit the reverse barcode in
+the table.
 
 To avoid potential error, _please do not use space in sample info_.
 
