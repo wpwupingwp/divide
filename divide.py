@@ -1,6 +1,7 @@
 ﻿#!/usr/bin/python3
 
 import argparse
+import datetime
 import os
 import regex as re
 from subprocess import run
@@ -10,12 +11,12 @@ from Bio import SeqIO
 
 def divide_by_barcode(merged, barcode_dict, arg):
     barcode_folder = os.path.join(arg.output, 'BARCODE')
-    barcode_info = {'total': 0,
-                    'head_barcode_mismatch': 0,
-                    'head_barcode_mode_wrong': 0,
-                    'head_tail_barcode_conflict': 0,
-                    'tail_barcode_mismatch': 0,
-                    'tail_barcode_mode_wrong': 0}
+    barcode_info = {'Head barcode mismatch': 0,
+                    'Head barcode mode wrong': 0,
+                    'Head tail barcode conflict': 0,
+                    'Tail barcode mismatch': 0,
+                    'Tail barcode mode_wrong': 0,
+                    'Total barcode': 0}
     #  parse_mode(mode):
     barcode_len, repeat = [int(i) for i in arg.mode.split('*')]
     barcode_full_len = barcode_len * repeat
@@ -23,7 +24,7 @@ def divide_by_barcode(merged, barcode_dict, arg):
     divided_files = set()
     handle_wrong = open(os.path.join(arg.output, 'barcode_wrong.fastq'), 'a')
     for record in SeqIO.parse(merged, 'fastq'):
-        barcode_info['total'] += 1
+        barcode_info['Total barcode'] += 1
         # ignore wrong barcode
         barcode_f = str(record.seq[:barcode_full_len])
         barcode_r = record.seq[-barcode_full_len:]
@@ -43,26 +44,26 @@ def divide_by_barcode(merged, barcode_dict, arg):
                 barcode_split_r.append(barcode_r[start:(start+barcode_len)])
         # here use list.count
         if barcode_split_f.count(barcode_split_f[0]) != len(barcode_split_f):
-            barcode_info['head_barcode_mode_wrong'] += 1
+            barcode_info['Head barcode mode wrong'] += 1
             SeqIO.write(record, handle_wrong, 'fastq')
             continue
         # for default, only judge if barcode in 5' is right
         if barcode_f not in barcode_dict:
-            barcode_info['head_barcode_mismatch'] += 1
+            barcode_info['Head barcode mismatch'] += 1
             SeqIO.write(record, handle_wrong, 'fastq')
             continue
         if arg.strict:
             if barcode_split_r.count(barcode_split_r[0]) != len(
                     barcode_split_r):
-                barcode_info['tail_barcode_mode_wrong'] += 1
+                barcode_info['Tail barcode mode wrong'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
             if barcode_r not in barcode_dict:
-                barcode_info['tail_barcode_mismatch'] += 1
+                barcode_info['Tail barcode mismatch'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
             if barcode_dict[barcode_f] != barcode_dict[barcode_r]:
-                barcode_info['head_tail_barcode_conflict'] += 1
+                barcode_info['Head tail barcode conflict'] += 1
                 SeqIO.write(record, handle_wrong, 'fastq')
                 continue
         # use forward barcode to classify samples
@@ -184,7 +185,7 @@ def vsearch(fasta, arg):
                 '--quiet'.format(fasta+suffix1, arg.minsize,
                                  fasta+suffix2, arg.topn))
     if arg.topn is not None:
-        command3 += ' --topn'.format(arg.topn)
+        command3 += ' --topn {}'.format(arg.topn)
     run(command3, shell=True)
 
 
@@ -224,6 +225,10 @@ def parse_args():
     return arg.parse_args()
 
 
+def gettime():
+    return datetime.datetime.now().time()
+
+
 def main():
     """
     Sequence likes this:
@@ -245,32 +250,34 @@ def main():
         os.mkdir(gene_folder)
         os.mkdir(barcode_gene_folder)
     except OSError:
-        print('output exists, please use another name')
+        print('Output exists, please use another name')
         raise
 
     barcode_dict, barcode_len = get_barcode_info(arg)
     primer_dict, primer_len = get_primer_info(arg)
 
     # merge
-    print('\nMerging input ...')
+    print(gettime(), 'Divide start')
+    print(gettime(), 'Merging input ...')
     merged = flash(arg)
-    print('Merge done')
+    print(gettime(), 'Merge done')
     # divide barcode
-    print('Dividing barcode ...')
+    print(gettime(), 'Dividing barcode ...')
     barcode_result, divided_files, barcode_full_len = divide_by_barcode(
         merged, barcode_dict, arg)
-    print('Dividing barcode finished.')
-    print('Dividing primer ...')
+    print(gettime(), 'Dividing barcode finished.')
+    print(gettime(), 'Dividing primer ...')
     primer_result, result_files, primer_not_found = divide_by_primer(
         divided_files, primer_dict, arg, barcode_len, primer_len)
-    print('Dividing genes finished.')
+    print(gettime(), 'Dividing genes finished.')
 
-    print('Divide done.\n')
     # write statistics
+    good_barcode = barcode_result['Total barcode'] * 2 - sum(barcode_result.values())
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
     with open(barcode_info, 'w') as handle:
         for record in barcode_result.items():
-            handle.write('{0},{1} \n'.format(*record))
+            handle.write('{0},{1}\n'.format(*record))
+        handle.write('Good barcode,{}\n'.format(good_barcode))
     primer_info = os.path.join(arg.output, 'primer_info.csv')
     with open(primer_info, 'w') as handle:
         handle.write('Primer not found,{}\n'.format(primer_not_found))
@@ -278,13 +285,16 @@ def main():
             handle.write('{0},{1} \n'.format(*record))
 
     # vsearch
+    print(gettime(), 'Start vsearch.')
     if not arg.no_vsearch:
         check = run('vsearch --version', shell=True)
         if check.returncode != 0:
             raise Exception('vsearch not found!')
         for i in result_files:
             vsearch(i, arg)
+    print(gettime(), 'Done with vsearch.')
     end_time = timer()
+    print(gettime(), 'Divide done.')
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))
 
