@@ -172,17 +172,17 @@ def get_primer_info(arg):
 
 
 def vsearch(fasta, arg):
-    all_cons = fasta + '.all_consensus'
-    output = all_cons + '.bigsize'
+    suffix1 = '.all_consensus'
+    suffix2 = '.bigsize'
     command = ('vsearch --cluster_size {} --id {} --strand {} --sizeout '
                '--consout tmp.fasta --quiet').format(fasta, arg.id, arg.strand)
     run(command, shell=True)
-    command2 = ('vsearch --sortbysize tmp.fasta --quiet --output '
-                '{}'.format(all_cons))
+    command2 = 'vsearch --sortbysize tmp.fasta --quiet --output ' '{}'.format(
+        fasta+suffix1)
     run(command2, shell=True)
     command3 = ('vsearch --sortbysize {} --minsize {} --output {} '
-                '--quiet --topn {}'.format(all_cons, arg.minsize, output,
-                                           arg.topn))
+                '--quiet --topn {}'.format(fasta+suffix1, arg.minsize,
+                                           fasta+suffix2, arg.topn))
     run(command3, shell=True)
 
 
