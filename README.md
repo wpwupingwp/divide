@@ -7,6 +7,7 @@ Divide NGS data by barcode and primer.
 * Python 3.5 or above
 * Biopython
 * regex
+* [vsearch](https://github.com/torognes/vsearch) (Optional)
 
 To install Biopython and regex, run as administrator:
 
