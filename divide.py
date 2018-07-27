@@ -220,7 +220,7 @@ def parse_args():
     vsearch.add_argument('-strand', choices=('plus', 'both'), default='both',
                          help='strand that cluster used,  plus or both')
     vsearch.add_argument('-topn', type=int, help='only keep best n seqs')
-    arg.print_help()
+    # arg.print_help()
     return arg.parse_args()
 
 
