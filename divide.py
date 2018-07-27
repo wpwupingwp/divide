@@ -129,13 +129,13 @@ def flash(arg):
     if len(files) == 1:
         return files[0]
     elif len(files) == 2:
-        for flash in ['flash2', 'flash']:
-            check = run('{} --version'.format(flash), shell=True)
-            if check == 0:
-                run('{0} {1} {2} -d {3} -o out'.format(
-                    flash, files[0], files[1], output), shell=True)
-                return os.path.join(output, 'out.extendedFrags.fastq')
-        raise Exception('FLASH not found and you give pair-end input!')
+        check = run('flash --version', shell=True)
+        if check.returncode == 0:
+            run('flash {1} {2} -d {3} -o out'.format(
+                files[0], files[1], output), shell=True)
+            return os.path.join(output, 'out.extendedFrags.fastq')
+        else:
+            raise Exception('FLASH not found and you give pair-end input!')
     else:
         raise Exception('Only support single or pair-end input!')
 
@@ -291,7 +291,9 @@ def main():
         if check.returncode != 0:
             raise Exception('vsearch not found!')
         for i in result_files:
+            print('>', end='', flush=True)
             vsearch(i, arg)
+            print('')
     print(gettime(), 'Done with vsearch.')
     end_time = timer()
     print(gettime(), 'Divide done.')
