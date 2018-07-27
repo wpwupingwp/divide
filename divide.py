@@ -181,7 +181,8 @@ def vsearch(fasta, arg):
                 '{}'.format(all_cons))
     run(command2, shell=True)
     command3 = ('vsearch --sortbysize {} --minsize {} --output {} '
-                '--quiet'.format(all_cons, arg.minsize, output))
+                '--quiet --topn {}'.format(all_cons, arg.minsize, output,
+                                           arg.topn))
     run(command3, shell=True)
 
 
@@ -209,13 +210,14 @@ def parse_args():
     vsearch = arg.add_argument_group('vsearch options')
     vsearch.add_argument('-no_vsearch', action='store_true',
                          help='skip vsearch')
+    vsearch.add_argument('-consout', help='output file name')
     vsearch.add_argument('-id', type=float, default=0.97,
                          help='reject if identity lower')
     vsearch.add_argument('-minsize', type=int, default=5,
                          help='minimum abundance')
     vsearch.add_argument('-strand', choices=('plus', 'both'), default='both',
                          help='strand that cluster used,  plus or both')
-    vsearch.add_argument('-consout', help='output file name')
+    vsearch.add_argument('-topn', type=int, help='only keep best n seqs')
     arg.print_help()
     return arg.parse_args()
 
