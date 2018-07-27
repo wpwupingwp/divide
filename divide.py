@@ -181,8 +181,10 @@ def vsearch(fasta, arg):
         fasta+suffix1)
     run(command2, shell=True)
     command3 = ('vsearch --sortbysize {} --minsize {} --output {} '
-                '--quiet --topn {}'.format(fasta+suffix1, arg.minsize,
-                                           fasta+suffix2, arg.topn))
+                '--quiet'.format(fasta+suffix1, arg.minsize,
+                                 fasta+suffix2, arg.topn))
+    if arg.topn is not None:
+        command3 += ' --topn'.format(arg.topn)
     run(command3, shell=True)
 
 
