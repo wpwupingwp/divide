@@ -4,7 +4,7 @@ import argparse
 import datetime
 import os
 import regex as re
-from subprocess import run
+from subprocess import run, DEVNULL
 from timeit import default_timer as timer
 from Bio import SeqIO
 
@@ -129,7 +129,7 @@ def flash(arg):
     if len(files) == 1:
         return files[0]
     elif len(files) == 2:
-        check = run('flash --version', shell=True)
+        check = run('flash --version', shell=True, stdout=DEVNULL)
         if check.returncode == 0:
             run('flash {1} {2} -d {3} -o out'.format(
                 files[0], files[1], output), shell=True)
@@ -287,13 +287,14 @@ def main():
     # vsearch
     print(gettime(), 'Start vsearch.')
     if not arg.no_vsearch:
-        check = run('vsearch --version', shell=True)
+        check = run('vsearch --version', shell=True, stdout=DEVNULL,
+                    stderr=DEVNULL)
         if check.returncode != 0:
             raise Exception('vsearch not found!')
         for i in result_files:
             print('>', end='', flush=True)
             vsearch(i, arg)
-            print('')
+    print('')
     print(gettime(), 'Done with vsearch.')
     end_time = timer()
     print(gettime(), 'Divide done.')
