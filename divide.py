@@ -160,7 +160,12 @@ def expand(seq):
     # since here only need expanded seq, rewrite it
     result = ''
     for i in seq:
-        value = ambiguous_dna_values[i]
+        try:
+            value = ambiguous_dna_values[i]
+        except KeyError:
+            print(gettime(),
+                  'Illegal IUPAC ambiguous base "{}" found!.'.format(i))
+            value = 'N'
         if len(value) == 1:
             result += value
         else:
@@ -270,7 +275,6 @@ def main():
 
     barcode_dict, barcode_len = get_barcode_info(arg)
     primer_dict, primer_len = get_primer_info(arg)
-    print(*primer_dict)
 
     # merge
     print(gettime(), 'Divide start')
