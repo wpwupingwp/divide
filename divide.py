@@ -7,7 +7,7 @@ import regex as re
 from subprocess import run, DEVNULL
 from timeit import default_timer as timer
 from Bio import SeqIO
-from Bio.SeqUtils import nt_search
+from Bio.Data.IUPACData import ambiguous_dna_values
 
 
 def divide_by_barcode(merged, barcode_dict, arg):
@@ -155,6 +155,19 @@ def get_barcode_info(arg):
     return barcode_info, barcode_len
 
 
+def expand(seq):
+    # nt_search in biopython do re.search
+    # since here only need expanded seq, rewrite it
+    result = ''
+    for i in seq:
+        value = ambiguous_dna_values[i]
+        if len(value) == 1:
+            result += value
+        else:
+            result += '[{}]'.format(value)
+    return result
+
+
 def get_primer_info(arg):
     primer_dict = dict()
     seq = list()
@@ -164,11 +177,10 @@ def get_primer_info(arg):
                 continue
             line = line.strip().split(sep=',')
             for i in line[1:]:
-                i = i.upper()
-                expand = nt_search(i, i)[0]
-                seq.append(expand)
+                seq.append(i)
+                expand_i = expand(i.upper())
                 pattern = re.compile(r'({}){{e<={}}}'.format(
-                    expand, arg.max_mismatch), re.BESTMATCH)
+                    expand_i, arg.max_mismatch), re.BESTMATCH)
                 primer_dict[pattern] = line[0]
     # max primer len
     primer_len = max([len(i) for i in seq])
@@ -258,6 +270,7 @@ def main():
 
     barcode_dict, barcode_len = get_barcode_info(arg)
     primer_dict, primer_len = get_primer_info(arg)
+    print(*primer_dict)
 
     # merge
     print(gettime(), 'Divide start')
