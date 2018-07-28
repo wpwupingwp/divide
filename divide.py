@@ -7,6 +7,7 @@ import regex as re
 from subprocess import run, DEVNULL
 from timeit import default_timer as timer
 from Bio import SeqIO
+from Bio.SeqUtils import nt_search
 
 
 def divide_by_barcode(merged, barcode_dict, arg):
@@ -163,9 +164,11 @@ def get_primer_info(arg):
                 continue
             line = line.strip().split(sep=',')
             for i in line[1:]:
-                seq.append(i)
+                i = i.upper()
+                expand = nt_search(i, i)[0]
+                seq.append(expand)
                 pattern = re.compile(r'({}){{e<={}}}'.format(
-                    i.upper(), arg.max_mismatch), re.BESTMATCH)
+                    expand, arg.max_mismatch), re.BESTMATCH)
                 primer_dict[pattern] = line[0]
     # max primer len
     primer_len = max([len(i) for i in seq])
