@@ -15,6 +15,9 @@ To install Biopython and regex, run as administrator:
 
 ## Changelog
 
+### v4.6
+Support ambiguous base.
+
 ### v4.5
 Extend vsearch options.
 Improve output
