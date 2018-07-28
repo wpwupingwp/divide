@@ -217,7 +217,7 @@ def parse_args():
     arg.add_argument('-m', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    arg.add_argument('--max_mismatch', type=int, default=4,
+    arg.add_argument('--max_mismatch', type=int, default=3,
                      help='maximum mismatch in primer')
     arg.add_argument('-p', dest='primer_file',
                      help='csv file containing primer info')
