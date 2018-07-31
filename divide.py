@@ -292,7 +292,8 @@ def main():
     print(gettime(), 'Dividing genes finished.')
 
     # write statistics
-    good_barcode = barcode_result['Total barcode'] * 2 - sum(barcode_result.values())
+    good_barcode = barcode_result['Total barcode'] * 2 - sum(
+        barcode_result.values())
     barcode_info = os.path.join(arg.output, 'barcode_info.csv')
     with open(barcode_info, 'w') as handle:
         for record in barcode_result.items():
