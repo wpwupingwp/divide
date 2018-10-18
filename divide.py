@@ -163,8 +163,7 @@ def expand(seq):
         try:
             value = ambiguous_dna_values[i]
         except KeyError:
-            print(gettime(),
-                  'Illegal IUPAC ambiguous base "{}" found!.'.format(i))
+            tprint('Illegal IUPAC ambiguous base "{}" found!.'.format(i))
             value = 'N'
         if len(value) == 1:
             result += value
@@ -245,8 +244,9 @@ def parse_args():
     return arg.parse_args()
 
 
-def gettime():
-    return datetime.datetime.now().time()
+def tprint(string):
+    s = '{}\t{}'.format(datetime.now().time(), string)
+    print(s, flush=True)
 
 
 def main():
@@ -272,25 +272,28 @@ def main():
     except OSError:
         print('Output exists, please use another name')
         raise
-
-    barcode_dict, barcode_len = get_barcode_info(arg)
-    primer_dict, primer_len = get_primer_info(arg)
-
     # merge
-    print(gettime(), 'Divide start')
-    print(gettime(), 'Merging input ...')
+    tprint('Divide start')
+    tprint('Merging input ...')
     merged = flash(arg)
-    print(gettime(), 'Merge done')
+    tprint('Merge done')
     # divide barcode
-    print(gettime(), 'Dividing barcode ...')
-    barcode_result, divided_files, barcode_full_len = divide_by_barcode(
-        merged, barcode_dict, arg)
-    print(gettime(), 'Dividing barcode finished.')
-    print(gettime(), 'Dividing primer ...')
+    tprint('Dividing barcode ...')
+    if arg.barcode_file is not None:
+        barcode_dict, barcode_len = get_barcode_info(arg)
+        barcode_result, divided_files, barcode_len = divide_by_barcode(
+            merged, barcode_dict, arg)
+        tprint('Dividing barcode finished.')
+    else:
+        barcode_result = {'barcode': 'skip'}
+        divided_files = merged
+        barcode_len = 0
+    # divide primer
+    tprint('Dividing primer ...')
+    primer_dict, primer_len = get_primer_info(arg)
     primer_result, result_files, primer_not_found = divide_by_primer(
         divided_files, primer_dict, arg, barcode_len, primer_len)
-    print(gettime(), 'Dividing genes finished.')
-
+    tprint('Dividing genes finished.')
     # write statistics
     good_barcode = barcode_result['Total barcode'] * 2 - sum(
         barcode_result.values())
@@ -304,9 +307,8 @@ def main():
         handle.write('Primer not found,{}\n'.format(primer_not_found))
         for record in primer_result.items():
             handle.write('{0},{1} \n'.format(*record))
-
     # vsearch
-    print(gettime(), 'Start vsearch.')
+    tprint('Start vsearch.')
     if not arg.no_vsearch:
         check = run('vsearch --version', shell=True, stdout=DEVNULL,
                     stderr=DEVNULL)
@@ -316,9 +318,9 @@ def main():
             print('>', end='', flush=True)
             vsearch(i, arg)
     print('')
-    print(gettime(), 'Done with vsearch.')
+    tprint('Done with vsearch.')
     end_time = timer()
-    print(gettime(), 'Divide done.')
+    tprint('Divide done.')
     print('Finished with {0:.3f}s. You can find results in {1}.\n'.format(
         end_time-start_time, arg.output))
 
