@@ -203,7 +203,7 @@ def vsearch(fasta, arg):
     run(command2, shell=True)
     command3 = ('vsearch --sortbysize {} --minsize {} --output {} '
                 '--quiet'.format(fasta+suffix1, arg.minsize,
-                                 fasta+suffix2, arg.topn))
+                                 fasta+suffix2))
     if arg.topn is not None:
         command3 += ' --topn {}'.format(arg.topn)
     run(command3, shell=True)
