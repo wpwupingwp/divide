@@ -245,7 +245,7 @@ def parse_args():
 
 
 def tprint(string):
-    s = '{}\t{}'.format(datetime.now().time(), string)
+    s = '{}\t{}'.format(datetime.datetime.now().time(), string)
     print(s, flush=True)
 
 
