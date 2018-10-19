@@ -113,6 +113,7 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
                 handle_gene = open(os.path.join(
                     gene_folder, '{}.fastq'.format(gene)), 'a')
                 if arg.cut:
+                    # may cause error if barcode_len=0
                     SeqIO.write(record[barcode_len:-barcode_len],
                                 handle_gene, 'fastq')
                     SeqIO.write(record[barcode_len:-barcode_len],
@@ -150,9 +151,7 @@ def get_barcode_info(arg):
             line = line.strip().split(sep=',')
             for i in line[1:]:
                 barcode_info[i.upper()] = line[0]
-    # not necessary, but consistant with primer
-    barcode_len = max([len(i) for i in barcode_info])
-    return barcode_info, barcode_len
+    return barcode_info
 
 
 def expand(seq):
@@ -280,7 +279,7 @@ def main():
     # divide barcode
     tprint('Dividing barcode ...')
     if arg.barcode_file is not None:
-        barcode_dict, barcode_len = get_barcode_info(arg)
+        barcode_dict = get_barcode_info(arg)
         barcode_result, divided_files, barcode_len = divide_by_barcode(
             merged, barcode_dict, arg)
         tprint('Dividing barcode finished.')
