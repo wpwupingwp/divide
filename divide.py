@@ -285,8 +285,8 @@ def main():
             merged, barcode_dict, arg)
         tprint('Dividing barcode finished.')
     else:
-        barcode_result = {'barcode': 'skip'}
-        divided_files = merged
+        barcode_result = {'Total barcode': 0}
+        divided_files = [merged, ]
         barcode_len = 0
     # divide primer
     tprint('Dividing primer ...')
