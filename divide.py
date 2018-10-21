@@ -102,7 +102,10 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
                 SeqIO.write(record, handle_wrong, 'fastq')
                 not_found += 1
                 continue
-            barcode = record.id.split('-')[0]
+            if not arg.no_barcode:
+                barcode = record.id.split('-')[0]
+            else:
+                barcode = ''
             primer_result[gene] += 1
             record.id = '{}-{}'.format(gene, record.id)
             handle_name = os.path.join(
@@ -217,11 +220,13 @@ def parse_args():
                      help='csv file containing barcode info')
     arg.add_argument('-c', '--cut', action='store_true',
                      help="cut barcode in 5' and 3'")
-    arg.add_argument('-m', dest='mode', default='5*2',
+    arg.add_argument('-d', dest='mode', default='5*2',
                      help='''barcode mode, default value is 5*2, i.e.,
                         barcode with length 5 repeated 2 times''')
-    arg.add_argument('--max_mismatch', type=int, default=3,
+    arg.add_argument('-m', dest='max_mismatch', type=int, default=3,
                      help='maximum mismatch in primer')
+    arg.add_argument('-no_barcode', action='store_true',
+                     help='skip dividing barcode')
     arg.add_argument('-p', dest='primer_file',
                      help='csv file containing primer info')
     arg.add_argument('-s', '--strict', action='store_true',
@@ -257,6 +262,9 @@ def main():
     """
     start_time = timer()
     arg = parse_args()
+    if arg.no_barcode:
+        arg.adapter = 0
+        arg.mode = None
     # create folders
     if arg.output is None:
         arg.output = arg.input[0].replace('.fastq', '')
@@ -278,7 +286,7 @@ def main():
     tprint('Merge done')
     # divide barcode
     tprint('Dividing barcode ...')
-    if arg.barcode_file is not None:
+    if not arg.no_barcode:
         barcode_dict = get_barcode_info(arg)
         barcode_result, divided_files, barcode_len = divide_by_barcode(
             merged, barcode_dict, arg)
