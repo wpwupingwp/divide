@@ -102,15 +102,14 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
                 SeqIO.write(record, handle_wrong, 'fastq')
                 not_found += 1
                 continue
-            if not arg.no_barcode:
-                barcode = record.id.split('-')[0]
-            else:
-                barcode = ''
+            barcode = record.id.split('-')[0]
             primer_result[gene] += 1
-            record.id = '{}-{}'.format(gene, record.id)
-            handle_name = os.path.join(
-                barcode_gene_folder, '{0}-{1}.fastq'.format(
-                    barcode, gene))
+            record.id = '-'.join([gene, record.id])
+            if not arg.no_barcode:
+                handle_name = os.path.join(
+                    barcode_gene_folder, '{}-{}.fastq'.format(barcode, gene))
+            else:
+                handle_name = os.path.join(barcode_gene_folder, gene+'.fastq')
             result_files.add(handle_name)
             with open(handle_name, 'a') as handle:
                 handle_gene = open(os.path.join(
