@@ -114,11 +114,11 @@ def divide_by_primer(divided_files, primer_info, arg, barcode_len, primer_len):
             with open(handle_name, 'a') as handle:
                 handle_gene = open(os.path.join(
                     gene_folder, '{}.fastq'.format(gene)), 'a')
+                # cut barcode/adapter/primer
                 if arg.cut:
-                    # may cause error if barcode_len=0
-                    SeqIO.write(record[barcode_len:-barcode_len],
+                    SeqIO.write(record[end:-end],
                                 handle_gene, 'fastq')
-                    SeqIO.write(record[barcode_len:-barcode_len],
+                    SeqIO.write(record[end:-end],
                                 handle, 'fastq')
                 else:
                     SeqIO.write(record, handle, 'fastq')
