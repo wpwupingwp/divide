@@ -1,3 +1,28 @@
+# join_and_split.py
+
+Helper for join and split fastq files.
+
+Required python 3.6 or above.
+
+## Usage
+```
+# Linux
+## split
+python3 join_and_split.py split -m fastq_file
+## join
+python3 join_and_split.py join -f forward.fastq -r reverse.fastq
+# Windows
+## split
+python join_and_split.py split -m fastq_file
+## join
+python join_and_split.py join -f forward.fastq -r reverse.fastq
+```
+
+Use -t to set linker text, by default the program use "JOINTEXT".
+
+When split, "fastq_file" could be multiple files, use "\*.fastq" (include
+quotation mark) to represent all ".fastq" files in current folder.
+
 # divide.py
 
 Divide NGS data by barcode and primer.
@@ -118,25 +143,6 @@ You can use Microsoft Excel to prepare these two files and save as CSV format,
 or use any text editor you prefer.
 
 **Make sure you don't miss the first line.**
-
-# join_fastq.py
-
-This program use "NNNNNNNNNN" to connect forward and reverse sequence pairs in
-given two fastq files.
-
-*Warning:*  Please do not use this tool if your sequences do have overlap but
-FLASH failed to merge it. Usually it means those data has extremly poor
-quality. If you merge them, you may get wrong result!
-
-_Only used for sequences do not have overlap that FLASH cannot handle._
-
-## Usage
-
-> python3 join_fastq.py Forward.fastq Reverse.fastq
-
-## Result
-
-It will produce combined file as "combine.fastq". 
 
 # task.sh
 
