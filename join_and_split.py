@@ -129,12 +129,12 @@ def parse_args():
     if parsed.action == 'join':
         if not all([parsed.left, parsed.right]):
             log.critical('Action "join" need two files as input!')
-            arg.print_usage()
+            arg.print_help()
             exit(-1)
     else:
         if parsed.merge is None:
             log.critical('Action "merge" need merge file/files as input!')
-            arg.print_usage()
+            arg.print_help()
             exit(-1)
     parsed.quality = 'A' * len(parsed.text)
     return parsed
