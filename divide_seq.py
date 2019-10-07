@@ -237,7 +237,7 @@ def parse_args():
                          help='skip vsearch')
     vsearch.add_argument('-consout', help='output file name')
     vsearch.add_argument('-id', type=float, default=0.97,
-                         help='reject if identity lower')
+                         help='identity threshold')
     vsearch.add_argument('-minsize', type=int, default=5,
                          help='minimum abundance')
     vsearch.add_argument('-strand', choices=('plus', 'both'), default='both',
