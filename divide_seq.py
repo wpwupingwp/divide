@@ -135,7 +135,7 @@ def flash(arg):
     elif len(files) == 2:
         check = run('flash --version', shell=True, stdout=DEVNULL)
         if check.returncode == 0:
-            run('flash {1} {2} -d {3} -o out'.format(
+            run('flash {} {} -d {} -o out'.format(
                 files[0], files[1], output), shell=True)
             return os.path.join(output, 'out.extendedFrags.fastq')
         else:
