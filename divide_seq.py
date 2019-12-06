@@ -135,8 +135,8 @@ def flash(arg):
     elif len(files) == 2:
         check = run('flash --version', shell=True, stdout=DEVNULL)
         if check.returncode == 0:
-            run('flash {} {} -d {} -o out'.format(
-                files[0], files[1], output), shell=True)
+            run('flash {0} {1} -d {2}'.format(files[0], files[1], output),
+                shell=True)
             return os.path.join(output, 'out.extendedFrags.fastq')
         else:
             raise Exception('FLASH not found and you give pair-end input!')
@@ -195,18 +195,22 @@ def get_primer_info(arg):
 def vsearch(fasta, arg):
     suffix1 = '.all_consensus'
     suffix2 = '.bigsize'
+    tmp = fasta + '.tmp'
     command = ('vsearch --cluster_size {} --id {} --strand {} --sizeout '
-               '--consout tmp.fasta --quiet').format(fasta, arg.id, arg.strand)
-    run(command, shell=True)
-    command2 = 'vsearch --sortbysize tmp.fasta --quiet --output ' '{}'.format(
-        fasta+suffix1)
-    run(command2, shell=True)
+               '--consout {} --quiet').format(fasta, arg.id, arg.strand, tmp)
+    # --clusterout_sort
+    r1 = run(command, shell=True)
+    command2 = 'vsearch --sortbysize {} --quiet --output  {}'.format(
+        tmp, fasta+suffix1)
+    r2 = run(command2, shell=True)
     command3 = ('vsearch --sortbysize {} --minsize {} --output {} '
                 '--quiet'.format(fasta+suffix1, arg.minsize,
                                  fasta+suffix2))
     if arg.topn is not None:
         command3 += ' --topn {}'.format(arg.topn)
-    run(command3, shell=True)
+    r3 = run(command3, shell=True)
+    os.remove(tmp)
+    return r1, r2, r3
 
 
 def parse_args():

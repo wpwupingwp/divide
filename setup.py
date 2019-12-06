@@ -21,7 +21,7 @@ setuptools.setup(
     name='divide_seq',
     py_modules=['divide_seq'],
     url='https://github.com/wpwupingwp/divide',
-    version='5.1',
+    version='5.22',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
